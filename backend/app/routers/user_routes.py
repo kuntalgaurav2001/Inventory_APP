@@ -5,7 +5,7 @@ from app.crud.user import get_user_by_id, get_user_by_uid
 from app.crud.activity_log import get_user_activity_logs
 from app.schema.user import DashboardResponse, UserResponse
 from app.schema.activity_log import ActivityLogResponse
-from app.firebase_auth import get_approved_user, verify_firebase_token
+from app.firebase_auth import get_approved_user, get_firebase_token
 from app.models.user import UserRole
 from typing import List
 
@@ -20,7 +20,7 @@ async def get_current_user_info(
 
 @router.get("/status")
 async def get_user_status(
-    token: dict = Depends(verify_firebase_token),
+    token: dict = Depends(get_firebase_token),
     db: Session = Depends(get_db)
 ):
     """Get user status (works for both approved and pending users)"""

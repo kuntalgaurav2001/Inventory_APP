@@ -37,8 +37,12 @@ def verify_firebase_token(request: Request):
     except Exception as e:
         raise HTTPException(status_code=401, detail=f"Token invalid: {str(e)}")
 
+def get_firebase_token(request: Request):
+    """Dependency to get verified Firebase token"""
+    return verify_firebase_token(request)
+
 def get_current_user(
-    token: dict = Depends(verify_firebase_token),
+    token: dict = Depends(get_firebase_token),
     db: Session = Depends(get_db)
 ):
     """Get current user from database"""

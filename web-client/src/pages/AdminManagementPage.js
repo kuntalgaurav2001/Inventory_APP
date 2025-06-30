@@ -533,7 +533,7 @@ const AdminManagementPage = () => {
                     <thead>
                       <tr>
                         <th>ID</th>
-                        <th>User ID</th>
+                        <th>User</th>
                         <th>Action</th>
                         <th>Description</th>
                         <th>Timestamp</th>
@@ -543,7 +543,17 @@ const AdminManagementPage = () => {
                       {logs.map(log => (
                         <tr key={log.id}>
                           <td data-label="ID">{log.id}</td>
-                          <td data-label="User ID">{log.user_id}</td>
+                          <td data-label="User">
+                            {log.user_info ? (
+                              <span>
+                                {log.user_info.first_name} {log.user_info.last_name || ''} ({log.user_info.role.replace('_', ' ').toUpperCase()})
+                              </span>
+                            ) : log.user_email ? (
+                              <span>{log.user_email}</span>
+                            ) : (
+                              <span>User ID: {log.user_id}</span>
+                            )}
+                          </td>
                           <td data-label="Action">{log.action}</td>
                           <td data-label="Description">{log.description}</td>
                           <td data-label="Timestamp">{new Date(log.timestamp).toLocaleString()}</td>

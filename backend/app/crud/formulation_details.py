@@ -8,6 +8,49 @@ from app.models.user import User, UserRole
 from app.schema.formulation_details import FormulationDetailsCreate, FormulationDetailsUpdate, FormulationDetailsAddNote
 from datetime import datetime
 
+def get_formulation_details_with_user_info(db: Session, skip: int = 0, limit: int = 100, chemical_id: int = None) -> List[dict]:
+    """Get all formulation details with user information"""
+    query = db.query(FormulationDetails).join(User, FormulationDetails.updated_by == User.uid, isouter=True)
+    
+    if chemical_id:
+        query = query.filter(FormulationDetails.chemical_id == chemical_id)
+    
+    formulations = query.offset(skip).limit(limit).all()
+    
+    # Convert to dict with user info
+    result = []
+    for formulation in formulations:
+        formulation_dict = {
+            "id": formulation.id,
+            "chemical_id": formulation.chemical_id,
+            "component_name": formulation.component_name,
+            "amount": formulation.amount,
+            "unit": formulation.unit,
+            "available_quantity": formulation.available_quantity,
+            "required_quantity": formulation.required_quantity,
+            "notes": formulation.notes,
+            "last_updated": formulation.last_updated,
+            "updated_by": formulation.updated_by,
+            "updated_by_user": None
+        }
+        
+        # Add user info if available
+        if formulation.user:
+            formulation_dict["updated_by_user"] = {
+                "uid": formulation.user.uid,
+                "first_name": formulation.user.first_name,
+                "last_name": formulation.user.last_name,
+                "role": formulation.user.role
+            }
+        
+        result.append(formulation_dict)
+    
+    return result
+
+def get_formulation_details_by_chemical_with_user_info(db: Session, chemical_id: int) -> List[dict]:
+    """Get all formulation details for a specific chemical with user information"""
+    return get_formulation_details_with_user_info(db, chemical_id=chemical_id)
+
 def get_formulation_details(db: Session, skip: int = 0, limit: int = 100, chemical_id: int = None) -> List[FormulationDetails]:
     """Get all formulation details with optional chemical filtering"""
     query = db.query(FormulationDetails)

@@ -68,12 +68,17 @@ export default function ChemicalDetail({
               <label>Last Updated:</label>
               <span>{new Date(chemical.last_updated).toLocaleString()}</span>
             </div>
-            {chemical.updated_by && (
+            {chemical.updated_by_user ? (
+              <div className={styles.infoItem}>
+                <label>Updated by:</label>
+                <span>{chemical.updated_by_user.first_name} {chemical.updated_by_user.last_name || ''} ({chemical.updated_by_user.role.replace('_', ' ').toUpperCase()})</span>
+              </div>
+            ) : chemical.updated_by ? (
               <div className={styles.infoItem}>
                 <label>Updated by:</label>
                 <span>{chemical.updated_by}</span>
               </div>
-            )}
+            ) : null}
           </div>
 
           {chemical.formulation && (
@@ -168,12 +173,17 @@ export default function ChemicalDetail({
                         <label>Last Updated:</label>
                         <span>{new Date(formulation.last_updated).toLocaleString()}</span>
                       </div>
-                      {formulation.updated_by && (
+                      {formulation.updated_by_user ? (
+                        <div className={styles.formulationItem}>
+                          <label>Updated by:</label>
+                          <span>{formulation.updated_by_user.first_name} {formulation.updated_by_user.last_name || ''} ({formulation.updated_by_user.role.replace('_', ' ').toUpperCase()})</span>
+                        </div>
+                      ) : formulation.updated_by ? (
                         <div className={styles.formulationItem}>
                           <label>Updated by:</label>
                           <span>{formulation.updated_by}</span>
                         </div>
-                      )}
+                      ) : null}
                     </div>
 
                     {formulation.notes && (

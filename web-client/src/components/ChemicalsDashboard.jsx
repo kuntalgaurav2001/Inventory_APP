@@ -588,9 +588,11 @@ export default function ChemicalsDashboard() {
                       <div className={styles.inventoryView}>
                         <p><strong>Quantity:</strong> {chemical.quantity} {chemical.unit}</p>
                         <p><strong>Last Updated:</strong> {new Date(chemical.last_updated).toLocaleDateString()}</p>
-                        {chemical.updated_by && (
+                        {chemical.updated_by_user ? (
+                          <p><strong>Updated by:</strong> {chemical.updated_by_user.first_name} {chemical.updated_by_user.last_name || ''} ({chemical.updated_by_user.role.replace('_', ' ').toUpperCase()})</p>
+                        ) : chemical.updated_by ? (
                           <p><strong>Updated by:</strong> {chemical.updated_by}</p>
-                        )}
+                        ) : null}
                       </div>
                     )}
                     
