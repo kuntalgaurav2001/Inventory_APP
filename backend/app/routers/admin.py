@@ -6,7 +6,7 @@ from app.crud.user import (
     get_user_by_id, get_users_by_role, get_user_by_email
 )
 from app.crud.activity_log import (
-    get_activity_logs, update_activity_log_note, get_activity_log_by_id
+    get_activity_logs, update_activity_log_note, get_activity_log_by_id, get_activity_logs_with_user_info
 )
 from app.schema.user import UserUpdate, UserResponse
 from app.schema.activity_log import ActivityLogFilter, ActivityLogListResponse, ActivityLogNote
@@ -182,13 +182,7 @@ async def get_activity_logs_admin(
         offset=offset
     )
     
-    logs, total = get_activity_logs(db, filters)
-    
-    # Add user email to each log for easier frontend display
-    for log in logs:
-        if log.user_id:
-            user = get_user_by_id(db, log.user_id)
-            log.user_email = user.email if user else None
+    logs, total = get_activity_logs_with_user_info(db, filters)
     
     return ActivityLogListResponse(
         logs=logs,

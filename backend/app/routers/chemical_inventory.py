@@ -30,7 +30,7 @@ def get_chemical_inventory(
             detail="User not approved"
         )
     
-    chemicals = crud_chemical_inventory.get_chemical_inventory(
+    chemicals = crud_chemical_inventory.get_chemical_inventory_with_user_info(
         db=db, 
         skip=skip, 
         limit=limit, 
@@ -51,7 +51,7 @@ def get_chemical_inventory_by_id(
             detail="User not approved"
         )
     
-    chemical = crud_chemical_inventory.get_chemical_inventory_by_id(
+    chemical = crud_chemical_inventory.get_chemical_inventory_by_id_with_user_info(
         db=db, 
         chemical_id=chemical_id, 
         user_role=current_user.role
@@ -63,21 +63,22 @@ def get_chemical_inventory_by_id(
         )
     
     # Get formulation details
-    formulation_details = crud_formulation_details.get_formulation_details_by_chemical(
+    formulation_details = crud_formulation_details.get_formulation_details_by_chemical_with_user_info(
         db=db, 
         chemical_id=chemical_id
     )
     
     # Create response with formulation details
     response = ChemicalInventoryWithFormulations(
-        id=chemical.id,
-        name=chemical.name,
-        quantity=chemical.quantity,
-        unit=chemical.unit,
-        formulation=chemical.formulation,
-        notes=chemical.notes,
-        last_updated=chemical.last_updated,
-        updated_by=chemical.updated_by,
+        id=chemical["id"],
+        name=chemical["name"],
+        quantity=chemical["quantity"],
+        unit=chemical["unit"],
+        formulation=chemical["formulation"],
+        notes=chemical["notes"],
+        last_updated=chemical["last_updated"],
+        updated_by=chemical["updated_by"],
+        updated_by_user=chemical["updated_by_user"],
         formulation_details=formulation_details
     )
     

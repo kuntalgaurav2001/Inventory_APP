@@ -27,11 +27,22 @@ class ChemicalInventoryUpdate(BaseModel):
 class ChemicalInventoryAddNote(BaseModel):
     note: str = Field(..., min_length=1)
 
+# User info for response
+class UserInfo(BaseModel):
+    uid: str
+    first_name: str
+    last_name: Optional[str] = None
+    role: str
+    
+    class Config:
+        from_attributes = True
+
 # Response schema
 class ChemicalInventoryResponse(ChemicalInventoryBase):
     id: int
     last_updated: datetime
     updated_by: Optional[str] = None
+    updated_by_user: Optional[UserInfo] = None
     
     class Config:
         from_attributes = True

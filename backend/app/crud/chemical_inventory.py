@@ -7,6 +7,78 @@ from app.models.user import User, UserRole
 from app.schema.chemical_inventory import ChemicalInventoryCreate, ChemicalInventoryUpdate, ChemicalInventoryAddNote
 from datetime import datetime
 
+def get_chemical_inventory_with_user_info(db: Session, skip: int = 0, limit: int = 100, user_role: UserRole = None) -> List[dict]:
+    """Get all chemical inventory items with user information"""
+    query = db.query(ChemicalInventory).join(User, ChemicalInventory.updated_by == User.uid, isouter=True)
+    
+    # Apply role-based filtering if specified
+    if user_role == UserRole.ALL_USERS:
+        # All users can see everything (read-only)
+        pass
+    elif user_role in [UserRole.ADMIN, UserRole.LAB_STAFF, UserRole.PRODUCT, UserRole.ACCOUNT]:
+        # These roles can see everything
+        pass
+    
+    chemicals = query.offset(skip).limit(limit).all()
+    
+    # Convert to dict with user info
+    result = []
+    for chemical in chemicals:
+        chemical_dict = {
+            "id": chemical.id,
+            "name": chemical.name,
+            "quantity": chemical.quantity,
+            "unit": chemical.unit,
+            "formulation": chemical.formulation,
+            "notes": chemical.notes,
+            "last_updated": chemical.last_updated,
+            "updated_by": chemical.updated_by,
+            "updated_by_user": None
+        }
+        
+        # Add user info if available
+        if chemical.user:
+            chemical_dict["updated_by_user"] = {
+                "uid": chemical.user.uid,
+                "first_name": chemical.user.first_name,
+                "last_name": chemical.user.last_name,
+                "role": chemical.user.role
+            }
+        
+        result.append(chemical_dict)
+    
+    return result
+
+def get_chemical_inventory_by_id_with_user_info(db: Session, chemical_id: int, user_role: UserRole = None) -> Optional[dict]:
+    """Get a specific chemical inventory item by ID with user information"""
+    chemical = db.query(ChemicalInventory).join(User, ChemicalInventory.updated_by == User.uid, isouter=True).filter(ChemicalInventory.id == chemical_id).first()
+    
+    if not chemical:
+        return None
+    
+    chemical_dict = {
+        "id": chemical.id,
+        "name": chemical.name,
+        "quantity": chemical.quantity,
+        "unit": chemical.unit,
+        "formulation": chemical.formulation,
+        "notes": chemical.notes,
+        "last_updated": chemical.last_updated,
+        "updated_by": chemical.updated_by,
+        "updated_by_user": None
+    }
+    
+    # Add user info if available
+    if chemical.user:
+        chemical_dict["updated_by_user"] = {
+            "uid": chemical.user.uid,
+            "first_name": chemical.user.first_name,
+            "last_name": chemical.user.last_name,
+            "role": chemical.user.role
+        }
+    
+    return chemical_dict
+
 def get_chemical_inventory(db: Session, skip: int = 0, limit: int = 100, user_role: UserRole = None) -> List[ChemicalInventory]:
     """Get all chemical inventory items with role-based filtering"""
     query = db.query(ChemicalInventory)
