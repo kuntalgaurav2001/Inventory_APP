@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import styles from './FormulationForm.module.scss';
+import { FlaskConical, Hash, Boxes, Calculator, FileText, ClipboardList } from 'lucide-react';
 
 export default function FormulationForm({ formulation, chemicalId, onSubmit, onCancel, title }) {
   const [formData, setFormData] = useState({
@@ -101,59 +102,69 @@ export default function FormulationForm({ formulation, chemicalId, onSubmit, onC
         </div>
 
         <form onSubmit={handleSubmit} className={styles.form}>
+          <div className={styles.sectionHeading}><FlaskConical size={18}/> Component Information</div>
           <div className={styles.formGroup}>
             <label htmlFor="component_name">Component Name *</label>
-            <input
-              type="text"
-              id="component_name"
-              name="component_name"
-              value={formData.component_name}
-              onChange={handleChange}
-              className={errors.component_name ? styles.error : ''}
-              placeholder="Enter component name"
-            />
+            <div className={styles.inputIconGroup}>
+              <FlaskConical className={styles.inputIcon} />
+              <input
+                type="text"
+                id="component_name"
+                name="component_name"
+                value={formData.component_name}
+                onChange={handleChange}
+                className={errors.component_name ? styles.error + ' ' + styles.inputWithIcon : styles.inputWithIcon}
+                placeholder="Enter component name"
+              />
+            </div>
             {errors.component_name && <span className={styles.errorText}>{errors.component_name}</span>}
           </div>
 
           <div className={styles.formRow}>
             <div className={styles.formGroup}>
               <label htmlFor="amount">Amount *</label>
-              <input
-                type="number"
-                id="amount"
-                name="amount"
-                value={formData.amount}
-                onChange={handleChange}
-                min="0"
-                step="0.01"
-                className={errors.amount ? styles.error : ''}
-                placeholder="0.00"
-              />
+              <div className={styles.inputIconGroup}>
+                <Calculator className={styles.inputIcon} />
+                <input
+                  type="number"
+                  id="amount"
+                  name="amount"
+                  value={formData.amount}
+                  onChange={handleChange}
+                  min="0"
+                  step="0.01"
+                  className={errors.amount ? styles.error + ' ' + styles.inputWithIcon : styles.inputWithIcon}
+                  placeholder="0.00"
+                />
+              </div>
               {errors.amount && <span className={styles.errorText}>{errors.amount}</span>}
             </div>
 
             <div className={styles.formGroup}>
               <label htmlFor="unit">Unit *</label>
-              <select
-                id="unit"
-                name="unit"
-                value={formData.unit}
-                onChange={handleChange}
-                className={errors.unit ? styles.error : ''}
-              >
-                <option value="">Select unit</option>
-                <option value="g">Grams (g)</option>
-                <option value="kg">Kilograms (kg)</option>
-                <option value="mg">Milligrams (mg)</option>
-                <option value="L">Liters (L)</option>
-                <option value="mL">Milliliters (mL)</option>
-                <option value="mol">Moles (mol)</option>
-                <option value="mmol">Millimoles (mmol)</option>
-                <option value="pieces">Pieces</option>
-                <option value="bottles">Bottles</option>
-                <option value="vials">Vials</option>
-                <option value="other">Other</option>
-              </select>
+              <div className={styles.inputIconGroup}>
+                <Hash className={styles.inputIcon} />
+                <select
+                  id="unit"
+                  name="unit"
+                  value={formData.unit}
+                  onChange={handleChange}
+                  className={errors.unit ? styles.error + ' ' + styles.inputWithIcon : styles.inputWithIcon}
+                >
+                  <option value="">Select unit</option>
+                  <option value="g">Grams (g)</option>
+                  <option value="kg">Kilograms (kg)</option>
+                  <option value="mg">Milligrams (mg)</option>
+                  <option value="L">Liters (L)</option>
+                  <option value="mL">Milliliters (mL)</option>
+                  <option value="mol">Moles (mol)</option>
+                  <option value="mmol">Millimoles (mmol)</option>
+                  <option value="pieces">Pieces</option>
+                  <option value="bottles">Bottles</option>
+                  <option value="vials">Vials</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
               {errors.unit && <span className={styles.errorText}>{errors.unit}</span>}
             </div>
           </div>
@@ -161,33 +172,39 @@ export default function FormulationForm({ formulation, chemicalId, onSubmit, onC
           <div className={styles.formRow}>
             <div className={styles.formGroup}>
               <label htmlFor="available_quantity">Available Quantity *</label>
-              <input
-                type="number"
-                id="available_quantity"
-                name="available_quantity"
-                value={formData.available_quantity}
-                onChange={handleChange}
-                min="0"
-                step="0.01"
-                className={errors.available_quantity ? styles.error : ''}
-                placeholder="0.00"
-              />
+              <div className={styles.inputIconGroup}>
+                <Boxes className={styles.inputIcon} />
+                <input
+                  type="number"
+                  id="available_quantity"
+                  name="available_quantity"
+                  value={formData.available_quantity}
+                  onChange={handleChange}
+                  min="0"
+                  step="0.01"
+                  className={errors.available_quantity ? styles.error + ' ' + styles.inputWithIcon : styles.inputWithIcon}
+                  placeholder="0.00"
+                />
+              </div>
               {errors.available_quantity && <span className={styles.errorText}>{errors.available_quantity}</span>}
             </div>
 
             <div className={styles.formGroup}>
               <label htmlFor="required_quantity">Required Quantity *</label>
-              <input
-                type="number"
-                id="required_quantity"
-                name="required_quantity"
-                value={formData.required_quantity}
-                onChange={handleChange}
-                min="0"
-                step="0.01"
-                className={errors.required_quantity ? styles.error : ''}
-                placeholder="0.00"
-              />
+              <div className={styles.inputIconGroup}>
+                <Calculator className={styles.inputIcon} />
+                <input
+                  type="number"
+                  id="required_quantity"
+                  name="required_quantity"
+                  value={formData.required_quantity}
+                  onChange={handleChange}
+                  min="0"
+                  step="0.01"
+                  className={errors.required_quantity ? styles.error + ' ' + styles.inputWithIcon : styles.inputWithIcon}
+                  placeholder="0.00"
+                />
+              </div>
               {errors.required_quantity && <span className={styles.errorText}>{errors.required_quantity}</span>}
             </div>
           </div>
@@ -209,7 +226,7 @@ export default function FormulationForm({ formulation, chemicalId, onSubmit, onC
               Cancel
             </button>
             <button type="submit" className={styles.submitBtn}>
-              {formulation ? 'Update Formulation' : 'Create Formulation'}
+              <FlaskConical size={18}/> {formulation ? 'Update Formulation' : 'Create Formulation'}
             </button>
           </div>
         </form>

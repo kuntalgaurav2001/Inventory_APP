@@ -186,10 +186,14 @@ def add_note_to_formulation_details(
     if not db_formulation:
         return None
     
+    # Get user info for the note
+    user = db.query(User).filter(User.uid == user_uid).first()
+    user_name = f"{user.first_name} {user.last_name or ''}".strip() if user else user_uid
+    
     # All users can add notes
     current_notes = db_formulation.notes or ""
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    new_note = f"[{timestamp}] {note_data.note}"
+    new_note = f"[{timestamp}] {user_name}: {note_data.note}"
     
     if current_notes:
         updated_notes = f"{current_notes}\n{new_note}"

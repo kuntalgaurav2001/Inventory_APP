@@ -10,7 +10,9 @@ import {
   AlertCircle,
   Bell,
   ClipboardList,
-  X
+  X,
+  Search,
+  Filter
 } from 'lucide-react';
 import {
   fetchChemicals,
@@ -47,6 +49,20 @@ export default function ChemicalsDashboard() {
   const [showAlerts, setShowAlerts] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [purchaseHistory, setPurchaseHistory] = useState({});
+  
+  // Search and filter states
+  const [searchTerm, setSearchTerm] = useState('');
+  const [showFilters, setShowFilters] = useState(false);
+  const [filters, setFilters] = useState({
+    quantityMin: '',
+    quantityMax: '',
+    lastUpdatedFrom: '',
+    lastUpdatedTo: '',
+    updatedBy: '',
+    thresholdAlert: false,
+    amountMin: '',
+    amountMax: ''
+  });
   
   const { user, userInfo } = useAuth();
   const navigate = useNavigate();
@@ -169,7 +185,9 @@ export default function ChemicalsDashboard() {
 
   const handleUpdateChemical = async (id, chemicalData) => {
     try {
+      console.log('Updating chemical with data:', chemicalData);
       await updateChemical(id, chemicalData);
+      console.log('Chemical updated successfully');
       await loadChemicals();
       if (selectedChemical && selectedChemical.id === id) {
         const updated = await fetchChemical(id);
@@ -287,6 +305,76 @@ export default function ChemicalsDashboard() {
       style: 'currency',
       currency: currency
     }).format(amount);
+  };
+
+  // Filter chemicals based on search term and filters
+  const getFilteredChemicals = () => {
+    let filtered = [...chemicals];
+
+    // Search by chemical name
+    if (searchTerm.trim()) {
+      filtered = filtered.filter(chemical =>
+        chemical.name.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    // Filter by quantity range
+    if (filters.quantityMin !== '') {
+      filtered = filtered.filter(chemical => chemical.quantity >= parseFloat(filters.quantityMin));
+    }
+    if (filters.quantityMax !== '') {
+      filtered = filtered.filter(chemical => chemical.quantity <= parseFloat(filters.quantityMax));
+    }
+
+    // Filter by last updated date range
+    if (filters.lastUpdatedFrom) {
+      const fromDate = new Date(filters.lastUpdatedFrom);
+      filtered = filtered.filter(chemical => new Date(chemical.last_updated) >= fromDate);
+    }
+    if (filters.lastUpdatedTo) {
+      const toDate = new Date(filters.lastUpdatedTo);
+      toDate.setHours(23, 59, 59, 999); // End of day
+      filtered = filtered.filter(chemical => new Date(chemical.last_updated) <= toDate);
+    }
+
+    // Filter by updated by user
+    if (filters.updatedBy.trim()) {
+      filtered = filtered.filter(chemical => {
+        if (chemical.updated_by_user) {
+          const fullName = `${chemical.updated_by_user.first_name} ${chemical.updated_by_user.last_name || ''}`.toLowerCase();
+          return fullName.includes(filters.updatedBy.toLowerCase());
+        }
+        return chemical.updated_by && chemical.updated_by.toLowerCase().includes(filters.updatedBy.toLowerCase());
+      });
+    }
+
+    // Filter by threshold alert (show only chemicals below threshold)
+    if (filters.thresholdAlert) {
+      filtered = filtered.filter(chemical => {
+        const threshold = chemical.alert_threshold || 10;
+        return chemical.quantity < threshold;
+      });
+    }
+
+    // Filter by amount range (for account view)
+    if (activeView === 'account' && (filters.amountMin !== '' || filters.amountMax !== '')) {
+      filtered = filtered.filter(chemical => {
+        const history = purchaseHistory[chemical.id];
+        if (!history) return false;
+        
+        const totalSpent = history.total_spent || 0;
+        
+        if (filters.amountMin !== '' && totalSpent < parseFloat(filters.amountMin)) {
+          return false;
+        }
+        if (filters.amountMax !== '' && totalSpent > parseFloat(filters.amountMax)) {
+          return false;
+        }
+        return true;
+      });
+    }
+
+    return filtered;
   };
 
   // Role-based permissions - use userInfo.role if available, fallback to user.role
@@ -448,13 +536,157 @@ export default function ChemicalsDashboard() {
         </div>
       )}
 
+      {/* Search and Filter Section */}
+      <div className={styles.searchFilterSection}>
+        <div className={styles.searchBar}>
+          <div className={styles.searchInput}>
+            <Search size={16} className={styles.searchIcon} />
+            <input
+              type="text"
+              placeholder="Search chemicals by name..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className={styles.searchField}
+            />
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm('')}
+                className={styles.clearSearch}
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className={`${styles.filterToggle} ${showFilters ? styles.active : ''}`}
+          >
+            <Filter size={16} />
+            Filters
+            {Object.values(filters).some(value => value !== '' && value !== false) && (
+              <span className={styles.filterBadge}>•</span>
+            )}
+          </button>
+        </div>
+
+        {showFilters && (
+          <div className={styles.filterPanel}>
+            <div className={styles.filterGrid}>
+              <div className={styles.filterGroup}>
+                <label>Quantity Range</label>
+                <div className={styles.rangeInputs}>
+                  <input
+                    type="number"
+                    placeholder="Min"
+                    value={filters.quantityMin}
+                    onChange={(e) => setFilters(prev => ({ ...prev, quantityMin: e.target.value }))}
+                    className={styles.rangeInput}
+                  />
+                  <span>-</span>
+                  <input
+                    type="number"
+                    placeholder="Max"
+                    value={filters.quantityMax}
+                    onChange={(e) => setFilters(prev => ({ ...prev, quantityMax: e.target.value }))}
+                    className={styles.rangeInput}
+                  />
+                </div>
+              </div>
+
+              <div className={styles.filterGroup}>
+                <label>Last Updated Range</label>
+                <div className={styles.dateInputs}>
+                  <input
+                    type="date"
+                    value={filters.lastUpdatedFrom}
+                    onChange={(e) => setFilters(prev => ({ ...prev, lastUpdatedFrom: e.target.value }))}
+                    className={styles.dateInput}
+                  />
+                  <span>to</span>
+                  <input
+                    type="date"
+                    value={filters.lastUpdatedTo}
+                    onChange={(e) => setFilters(prev => ({ ...prev, lastUpdatedTo: e.target.value }))}
+                    className={styles.dateInput}
+                  />
+                </div>
+              </div>
+
+              <div className={styles.filterGroup}>
+                <label>Updated By</label>
+                <input
+                  type="text"
+                  placeholder="Search by user name..."
+                  value={filters.updatedBy}
+                  onChange={(e) => setFilters(prev => ({ ...prev, updatedBy: e.target.value }))}
+                  className={styles.textInput}
+                />
+              </div>
+
+              <div className={styles.filterGroup}>
+                <label className={styles.checkboxLabel}>
+                  <input
+                    type="checkbox"
+                    checked={filters.thresholdAlert}
+                    onChange={(e) => setFilters(prev => ({ ...prev, thresholdAlert: e.target.checked }))}
+                    className={styles.checkbox}
+                  />
+                  Show only chemicals below alert threshold
+                </label>
+              </div>
+
+              {activeView === 'account' && (
+                <div className={styles.filterGroup}>
+                  <label>Amount Range (Total Spent)</label>
+                  <div className={styles.rangeInputs}>
+                    <input
+                      type="number"
+                      placeholder="Min $"
+                      value={filters.amountMin}
+                      onChange={(e) => setFilters(prev => ({ ...prev, amountMin: e.target.value }))}
+                      className={styles.rangeInput}
+                    />
+                    <span>-</span>
+                    <input
+                      type="number"
+                      placeholder="Max $"
+                      value={filters.amountMax}
+                      onChange={(e) => setFilters(prev => ({ ...prev, amountMax: e.target.value }))}
+                      className={styles.rangeInput}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className={styles.filterActions}>
+              <button
+                onClick={() => setFilters({
+                  quantityMin: '',
+                  quantityMax: '',
+                  lastUpdatedFrom: '',
+                  lastUpdatedTo: '',
+                  updatedBy: '',
+                  thresholdAlert: false,
+                  amountMin: '',
+                  amountMax: ''
+                })}
+                className={styles.clearFilters}
+              >
+                Clear All Filters
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
       <div className={styles.content}>
         <div className={styles.chemicalsList}>
           <div className={styles.listHeader}>
             <h3>
               {activeView === 'product' ? 'Product Team View' : 
                activeView === 'account' ? 'Account Team View' : 'Chemicals'} 
-              ({chemicals.length})
+              ({getFilteredChemicals().length} of {chemicals.length})
             </h3>
             {canCreateChemical && (
               <button 
@@ -511,7 +743,7 @@ export default function ChemicalsDashboard() {
             </div>
           ) : (
             <div className={styles.chemicalsGrid}>
-              {chemicals.map(chemical => {
+              {getFilteredChemicals().map(chemical => {
                 // Check if this chemical has alerts
                 const chemicalAlerts = alerts.filter(a => a.chemicalId === chemical.id);
                 const hasCriticalAlert = chemicalAlerts.some(a => a.severity === 'critical');
@@ -554,8 +786,9 @@ export default function ChemicalsDashboard() {
                           </div>
                         )}
                         <div className={styles.additionalInfo}>
-                          {chemical.supplier && <p><strong>Supplier:</strong> {chemical.supplier}</p>}
+                          <p><strong>Alert Threshold:</strong> {chemical.alert_threshold ? `${chemical.alert_threshold} ${chemical.unit}` : 'Not set'}</p>
                           {chemical.location && <p><strong>Location:</strong> {chemical.location}</p>}
+                          {chemical.supplier && <p><strong>Supplier:</strong> {chemical.supplier}</p>}
                           <p><strong>Last Updated:</strong> {new Date(chemical.last_updated).toLocaleDateString()}</p>
                         </div>
                       </div>
@@ -577,7 +810,7 @@ export default function ChemicalsDashboard() {
                           {chemical.quantity >= (chemical.alert_threshold || 10) && <span className={styles.statusNormal}>In Stock</span>}
                         </div>
                         <div className={styles.additionalInfo}>
-                          <p><strong>Alert Threshold:</strong> {chemical.alert_threshold || 10} {chemical.unit}</p>
+                          <p><strong>Alert Threshold:</strong> {chemical.alert_threshold ? `${chemical.alert_threshold} ${chemical.unit}` : 'Not set'}</p>
                           {chemical.location && <p><strong>Location:</strong> {chemical.location}</p>}
                           {chemical.supplier && <p><strong>Supplier:</strong> {chemical.supplier}</p>}
                           <p><strong>Last Updated:</strong> {new Date(chemical.last_updated).toLocaleDateString()}</p>
@@ -587,6 +820,7 @@ export default function ChemicalsDashboard() {
                       // Full Inventory View
                       <div className={styles.inventoryView}>
                         <p><strong>Quantity:</strong> {chemical.quantity} {chemical.unit}</p>
+                        <p><strong>Alert Threshold:</strong> {chemical.alert_threshold ? `${chemical.alert_threshold} ${chemical.unit}` : 'Not set'}</p>
                         <p><strong>Last Updated:</strong> {new Date(chemical.last_updated).toLocaleDateString()}</p>
                         {chemical.updated_by_user ? (
                           <p><strong>Updated by:</strong> {chemical.updated_by_user.first_name} {chemical.updated_by_user.last_name || ''} ({chemical.updated_by_user.role.replace('_', ' ').toUpperCase()})</p>

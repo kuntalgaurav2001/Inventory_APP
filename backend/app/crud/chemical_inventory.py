@@ -31,6 +31,9 @@ def get_chemical_inventory_with_user_info(db: Session, skip: int = 0, limit: int
             "unit": chemical.unit,
             "formulation": chemical.formulation,
             "notes": chemical.notes,
+            "alert_threshold": chemical.alert_threshold,
+            "supplier": chemical.supplier,
+            "location": chemical.location,
             "last_updated": chemical.last_updated,
             "updated_by": chemical.updated_by,
             "updated_by_user": None
@@ -45,6 +48,7 @@ def get_chemical_inventory_with_user_info(db: Session, skip: int = 0, limit: int
                 "role": chemical.user.role
             }
         
+        print(f"Returning chemical: {chemical_dict['name']}, alert_threshold: {chemical_dict['alert_threshold']}")
         result.append(chemical_dict)
     
     return result
@@ -105,6 +109,8 @@ def create_chemical_inventory(
 ) -> ChemicalInventory:
     """Create a new chemical inventory item with role-based access control"""
     
+    print(f"Creating chemical with data: {chemical.dict()}")
+    
     # Check permissions
     if user_role not in [UserRole.ADMIN, UserRole.LAB_STAFF, UserRole.PRODUCT]:
         raise PermissionError("Insufficient permissions to create chemical inventory")
@@ -113,9 +119,13 @@ def create_chemical_inventory(
         **chemical.dict(),
         updated_by=user_uid
     )
+    print(f"Created chemical object: {db_chemical.name}, alert_threshold: {db_chemical.alert_threshold}")
+    
     db.add(db_chemical)
     db.commit()
     db.refresh(db_chemical)
+    
+    print(f"Chemical created successfully: {db_chemical.name}, alert_threshold: {db_chemical.alert_threshold}")
     
     # Log the activity
     log_activity(
@@ -138,8 +148,11 @@ def update_chemical_inventory(
 ) -> Optional[ChemicalInventory]:
     """Update a chemical inventory item with role-based access control"""
     
+    print(f"Updating chemical {chemical_id} with data: {chemical_update.dict()}")
+    
     db_chemical = get_chemical_inventory_by_id(db, chemical_id)
     if not db_chemical:
+        print(f"Chemical {chemical_id} not found")
         return None
     
     # Get old values for logging
@@ -148,18 +161,24 @@ def update_chemical_inventory(
         "quantity": db_chemical.quantity,
         "unit": db_chemical.unit,
         "formulation": db_chemical.formulation,
-        "notes": db_chemical.notes
+        "notes": db_chemical.notes,
+        "alert_threshold": db_chemical.alert_threshold,
+        "supplier": db_chemical.supplier,
+        "location": db_chemical.location
     }
+    
+    print(f"Old values: {old_values}")
     
     # Apply role-based update restrictions
     update_data = chemical_update.dict(exclude_unset=True)
+    print(f"Update data before role filtering: {update_data}")
     
     if user_role == UserRole.ADMIN:
         # Admin can update everything
         pass
     elif user_role in [UserRole.LAB_STAFF, UserRole.PRODUCT]:
-        # Lab Staff and Product can update: quantity, formulation, notes
-        allowed_fields = {"quantity", "formulation", "notes"}
+        # Lab Staff and Product can update: quantity, formulation, notes, alert_threshold, supplier, location
+        allowed_fields = {"quantity", "formulation", "notes", "alert_threshold", "supplier", "location"}
         update_data = {k: v for k, v in update_data.items() if k in allowed_fields}
     elif user_role == UserRole.ACCOUNT:
         # Account can only update amounts (quantity) and notes
@@ -168,16 +187,22 @@ def update_chemical_inventory(
     else:
         raise PermissionError("Insufficient permissions to update chemical inventory")
     
+    print(f"Update data after role filtering: {update_data}")
+    
     if not update_data:
+        print("No data to update")
         return db_chemical
     
     # Update fields
     for field, value in update_data.items():
+        print(f"Setting {field} = {value}")
         setattr(db_chemical, field, value)
     
     db_chemical.updated_by = user_uid
     db.commit()
     db.refresh(db_chemical)
+    
+    print(f"Chemical updated successfully: {db_chemical.name}")
     
     # Log changes
     for field, new_value in update_data.items():
@@ -209,10 +234,14 @@ def add_note_to_chemical_inventory(
     if not db_chemical:
         return None
     
+    # Get user info for the note
+    user = db.query(User).filter(User.uid == user_uid).first()
+    user_name = f"{user.first_name} {user.last_name or ''}".strip() if user else user_uid
+    
     # All users can add notes
     current_notes = db_chemical.notes or ""
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    new_note = f"[{timestamp}] {note_data.note}"
+    new_note = f"[{timestamp}] {user_name}: {note_data.note}"
     
     if current_notes:
         updated_notes = f"{current_notes}\n{new_note}"
