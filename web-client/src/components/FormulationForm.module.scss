@@ -62,6 +62,22 @@
   padding: 24px;
 }
 
+.sectionHeading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  color: #2c3e50;
+  font-size: 16px;
+  margin: 24px 0 16px 0;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #e9ecef;
+  
+  &:first-child {
+    margin-top: 0;
+  }
+}
+
 .formGroup {
   margin-bottom: 20px;
 
@@ -97,6 +113,25 @@
     resize: vertical;
     min-height: 80px;
   }
+}
+
+.inputIconGroup {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.inputIcon {
+  position: absolute;
+  left: 12px;
+  color: #6c757d;
+  z-index: 1;
+  width: 16px;
+  height: 16px;
+}
+
+.inputWithIcon {
+  padding-left: 40px !important;
 }
 
 .formRow {

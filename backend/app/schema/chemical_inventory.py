@@ -10,6 +10,9 @@ class ChemicalInventoryBase(BaseModel):
     unit: str = Field(..., min_length=1, max_length=50)
     formulation: Optional[str] = None
     notes: Optional[str] = None
+    alert_threshold: Optional[float] = Field(None, ge=0)
+    supplier: Optional[str] = None
+    location: Optional[str] = None
 
 # Create schema
 class ChemicalInventoryCreate(ChemicalInventoryBase):
@@ -22,6 +25,9 @@ class ChemicalInventoryUpdate(BaseModel):
     unit: Optional[str] = Field(None, min_length=1, max_length=50)
     formulation: Optional[str] = None
     notes: Optional[str] = None
+    alert_threshold: Optional[float] = Field(None, ge=0)
+    supplier: Optional[str] = None
+    location: Optional[str] = None
 
 # Add note schema (for appending notes)
 class ChemicalInventoryAddNote(BaseModel):

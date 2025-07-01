@@ -12,6 +12,9 @@ class ChemicalInventory(Base):
     unit = Column(String, nullable=False)
     formulation = Column(Text, nullable=True)
     notes = Column(Text, nullable=True)
+    alert_threshold = Column(Float, nullable=True)
+    supplier = Column(String, nullable=True)
+    location = Column(String, nullable=True)
     last_updated = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     updated_by = Column(String, ForeignKey("users.uid"), nullable=True)
     

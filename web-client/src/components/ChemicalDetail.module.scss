@@ -2,6 +2,9 @@
   height: 100%;
   display: flex;
   flex-direction: column;
+  background: var(--card-bg);
+  color: var(--primary-text);
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 .header {
@@ -10,11 +13,11 @@
   align-items: center;
   margin-bottom: 20px;
   padding-bottom: 15px;
-  border-bottom: 1px solid #e9ecef;
+  border-bottom: 1px solid var(--border-color);
 
   h3 {
     margin: 0;
-    color: #2c3e50;
+    color: var(--primary-text);
     font-size: 24px;
     font-weight: 600;
   }
@@ -26,32 +29,36 @@
 }
 
 .editBtn {
-  background: #007bff;
+  background: var(--accent-color);
   color: white;
   border: none;
   padding: 8px 16px;
   border-radius: 6px;
   cursor: pointer;
   font-size: 14px;
-  transition: background-color 0.2s;
+  transition: all 0.3s ease;
 
   &:hover {
-    background: #0056b3;
+    background: var(--accent-color);
+    opacity: 0.9;
+    transform: translateY(-1px);
   }
 }
 
 .deleteBtn {
-  background: #dc3545;
+  background: var(--error-color);
   color: white;
   border: none;
   padding: 8px 16px;
   border-radius: 6px;
   cursor: pointer;
   font-size: 14px;
-  transition: background-color 0.2s;
+  transition: all 0.3s ease;
 
   &:hover {
-    background: #c82333;
+    background: var(--error-color);
+    opacity: 0.9;
+    transform: translateY(-1px);
   }
 }
 
@@ -65,11 +72,11 @@
 }
 
 .infoSection h4 {
-  color: #2c3e50;
+  color: var(--primary-text);
   font-size: 18px;
   margin-bottom: 15px;
   padding-bottom: 8px;
-  border-bottom: 2px solid #e9ecef;
+  border-bottom: 2px solid var(--border-color);
 }
 
 .infoGrid {
@@ -86,12 +93,12 @@
 
   label {
     font-weight: 600;
-    color: #495057;
+    color: var(--primary-text);
     font-size: 14px;
   }
 
   span {
-    color: #6c757d;
+    color: var(--secondary-text);
     font-size: 14px;
   }
 }
@@ -100,48 +107,51 @@
   margin-bottom: 20px;
 
   h5 {
-    color: #2c3e50;
+    color: var(--primary-text);
     font-size: 16px;
     margin-bottom: 8px;
   }
 }
 
 .formulationText {
-  background: #f8f9fa;
+  background: var(--tertiary-bg);
   padding: 12px;
   border-radius: 6px;
-  border-left: 4px solid #007bff;
+  border-left: 4px solid var(--accent-color);
   font-size: 14px;
   line-height: 1.5;
-  color: #495057;
+  color: var(--primary-text);
+  transition: all 0.3s ease;
 }
 
 .notesSection {
   margin-bottom: 30px;
 
   h5 {
-    color: #2c3e50;
+    color: var(--primary-text);
     font-size: 16px;
     margin-bottom: 8px;
   }
 }
 
 .notesText {
-  background: #f8f9fa;
+  background: var(--tertiary-bg);
   padding: 12px;
   border-radius: 6px;
   margin-bottom: 15px;
   max-height: 150px;
   overflow-y: auto;
+  border: 1px solid var(--border-color);
+  transition: all 0.3s ease;
 }
 
 .noteLine {
   font-size: 14px;
   line-height: 1.4;
-  color: #495057;
+  color: var(--primary-text);
   margin-bottom: 4px;
   padding: 4px 0;
-  border-bottom: 1px solid #e9ecef;
+  border-bottom: 1px solid var(--border-color);
 
   &:last-child {
     border-bottom: none;
@@ -149,7 +159,7 @@
 }
 
 .noNotes {
-  color: #6c757d;
+  color: var(--secondary-text);
   font-style: italic;
   margin-bottom: 15px;
 }
@@ -162,21 +172,24 @@
 
 .noteInput {
   padding: 10px;
-  border: 1px solid #ced4da;
+  border: 1px solid var(--border-color);
   border-radius: 6px;
   font-size: 14px;
   resize: vertical;
   min-height: 60px;
+  background: var(--input-bg);
+  color: var(--input-text);
+  transition: all 0.3s ease;
 
   &:focus {
     outline: none;
-    border-color: #007bff;
+    border-color: var(--accent-color);
     box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
   }
 }
 
 .addNoteBtn {
-  background: #28a745;
+  background: var(--success-color);
   color: white;
   border: none;
   padding: 8px 16px;
@@ -184,20 +197,22 @@
   cursor: pointer;
   font-size: 14px;
   align-self: flex-start;
-  transition: background-color 0.2s;
+  transition: all 0.3s ease;
 
   &:hover {
-    background: #218838;
+    background: var(--success-color);
+    opacity: 0.9;
+    transform: translateY(-1px);
   }
 }
 
 .formulationsSection {
   h4 {
-    color: #2c3e50;
+    color: var(--primary-text);
     font-size: 18px;
     margin-bottom: 15px;
     padding-bottom: 8px;
-    border-bottom: 2px solid #e9ecef;
+    border-bottom: 2px solid var(--border-color);
   }
 }
 
@@ -209,17 +224,19 @@
 }
 
 .addFormulationBtn {
-  background: #28a745;
+  background: var(--success-color);
   color: white;
   border: none;
   padding: 8px 16px;
   border-radius: 6px;
   cursor: pointer;
   font-size: 14px;
-  transition: background-color 0.2s;
+  transition: all 0.3s ease;
 
   &:hover {
-    background: #218838;
+    background: var(--success-color);
+    opacity: 0.9;
+    transform: translateY(-1px);
   }
 }
 
@@ -230,10 +247,11 @@
 }
 
 .formulationCard {
-  background: #f8f9fa;
-  border: 1px solid #e9ecef;
+  background: var(--tertiary-bg);
+  border: 1px solid var(--border-color);
   border-radius: 8px;
   padding: 16px;
+  transition: all 0.3s ease;
 }
 
 .formulationHeader {
@@ -244,7 +262,7 @@
 
   h5 {
     margin: 0;
-    color: #2c3e50;
+    color: var(--primary-text);
     font-size: 16px;
     font-weight: 600;
   }
@@ -256,32 +274,36 @@
 }
 
 .editFormulationBtn {
-  background: #ffc107;
+  background: var(--warning-color);
   color: #212529;
   border: none;
   padding: 4px 8px;
   border-radius: 4px;
   cursor: pointer;
   font-size: 12px;
-  transition: background-color 0.2s;
+  transition: all 0.3s ease;
 
   &:hover {
-    background: #e0a800;
+    background: var(--warning-color);
+    opacity: 0.9;
+    transform: translateY(-1px);
   }
 }
 
 .deleteFormulationBtn {
-  background: #dc3545;
+  background: var(--error-color);
   color: white;
   border: none;
   padding: 4px 8px;
   border-radius: 4px;
   cursor: pointer;
   font-size: 12px;
-  transition: background-color 0.2s;
+  transition: all 0.3s ease;
 
   &:hover {
-    background: #c82333;
+    background: var(--error-color);
+    opacity: 0.9;
+    transform: translateY(-1px);
   }
 }
 
@@ -304,12 +326,12 @@
 
   label {
     font-weight: 600;
-    color: #495057;
+    color: var(--primary-text);
     font-size: 12px;
   }
 
   span {
-    color: #6c757d;
+    color: var(--secondary-text);
     font-size: 14px;
   }
 }
@@ -318,19 +340,20 @@
   margin-top: 10px;
 
   h6 {
-    color: #2c3e50;
+    color: var(--primary-text);
     font-size: 14px;
     margin-bottom: 6px;
   }
 }
 
 .formulationNotesText {
-  background: white;
+  background: var(--card-bg);
   padding: 8px;
   border-radius: 4px;
-  border: 1px solid #e9ecef;
+  border: 1px solid var(--border-color);
   max-height: 100px;
   overflow-y: auto;
+  transition: all 0.3s ease;
 }
 
 .addFormulationNoteForm {
@@ -342,21 +365,24 @@
 
 .formulationNoteInput {
   padding: 8px;
-  border: 1px solid #ced4da;
+  border: 1px solid var(--border-color);
   border-radius: 4px;
   font-size: 13px;
   resize: vertical;
   min-height: 40px;
+  background: var(--input-bg);
+  color: var(--input-text);
+  transition: all 0.3s ease;
 
   &:focus {
     outline: none;
-    border-color: #007bff;
+    border-color: var(--accent-color);
     box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
   }
 }
 
 .addFormulationNoteBtn {
-  background: #17a2b8;
+  background: var(--info-color, #17a2b8);
   color: white;
   border: none;
   padding: 6px 12px;
@@ -364,17 +390,19 @@
   cursor: pointer;
   font-size: 12px;
   align-self: flex-start;
-  transition: background-color 0.2s;
+  transition: all 0.3s ease;
 
   &:hover {
-    background: #138496;
+    background: var(--info-color, #17a2b8);
+    opacity: 0.9;
+    transform: translateY(-1px);
   }
 }
 
 .noFormulations {
   text-align: center;
   padding: 40px 20px;
-  color: #6c757d;
+  color: var(--secondary-text);
 
   p {
     margin-bottom: 15px;
@@ -383,16 +411,18 @@
 }
 
 .addFirstFormulationBtn {
-  background: #28a745;
+  background: var(--success-color);
   color: white;
   border: none;
   padding: 10px 20px;
   border-radius: 6px;
   cursor: pointer;
   font-size: 14px;
-  transition: background-color 0.2s;
+  transition: all 0.3s ease;
 
   &:hover {
-    background: #218838;
+    background: var(--success-color);
+    opacity: 0.9;
+    transform: translateY(-1px);
   }
 } 

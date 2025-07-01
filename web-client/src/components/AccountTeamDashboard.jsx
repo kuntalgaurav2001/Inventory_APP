@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { BarChart3, DollarSign, ClipboardList, Plus } from 'lucide-react';
+import { BarChart3, DollarSign, ClipboardList, Plus, Search, Filter, X } from 'lucide-react';
 import {
   fetchAccountSummary,
   fetchTransactions,
@@ -27,6 +27,19 @@ export default function AccountTeamDashboard() {
   const [activeTab, setActiveTab] = useState('overview');
   const [showTransactionForm, setShowTransactionForm] = useState(false);
   const [showPurchaseOrderForm, setShowPurchaseOrderForm] = useState(false);
+  
+  // Search and filter states
+  const [searchTerm, setSearchTerm] = useState('');
+  const [showFilters, setShowFilters] = useState(false);
+  const [filters, setFilters] = useState({
+    amountMin: '',
+    amountMax: '',
+    dateFrom: '',
+    dateTo: '',
+    status: '',
+    transactionType: '',
+    supplier: ''
+  });
   
   const { user, userInfo } = useAuth();
   const navigate = useNavigate();
@@ -132,6 +145,110 @@ export default function AccountTeamDashboard() {
     }).format(amount);
   };
 
+  // Filter transactions based on search term and filters
+  const getFilteredTransactions = () => {
+    let filtered = [...transactions];
+
+    // Search by chemical name
+    if (searchTerm.trim()) {
+      filtered = filtered.filter(transaction => {
+        const chemical = chemicals.find(c => c.id === transaction.chemical_id);
+        return chemical && chemical.name.toLowerCase().includes(searchTerm.toLowerCase());
+      });
+    }
+
+    // Filter by amount range
+    if (filters.amountMin !== '') {
+      filtered = filtered.filter(transaction => transaction.amount >= parseFloat(filters.amountMin));
+    }
+    if (filters.amountMax !== '') {
+      filtered = filtered.filter(transaction => transaction.amount <= parseFloat(filters.amountMax));
+    }
+
+    // Filter by date range
+    if (filters.dateFrom) {
+      const fromDate = new Date(filters.dateFrom);
+      filtered = filtered.filter(transaction => new Date(transaction.created_at) >= fromDate);
+    }
+    if (filters.dateTo) {
+      const toDate = new Date(filters.dateTo);
+      toDate.setHours(23, 59, 59, 999);
+      filtered = filtered.filter(transaction => new Date(transaction.created_at) <= toDate);
+    }
+
+    // Filter by status
+    if (filters.status) {
+      filtered = filtered.filter(transaction => transaction.status === filters.status);
+    }
+
+    // Filter by transaction type
+    if (filters.transactionType) {
+      filtered = filtered.filter(transaction => transaction.transaction_type === filters.transactionType);
+    }
+
+    // Filter by supplier
+    if (filters.supplier.trim()) {
+      filtered = filtered.filter(transaction => 
+        transaction.supplier && transaction.supplier.toLowerCase().includes(filters.supplier.toLowerCase())
+      );
+    }
+
+    return filtered;
+  };
+
+  // Filter purchase orders based on search term and filters
+  const getFilteredPurchaseOrders = () => {
+    let filtered = [...purchaseOrders];
+
+    // Search by order number or chemical names
+    if (searchTerm.trim()) {
+      filtered = filtered.filter(order => {
+        // Search in order number
+        if (order.order_number && order.order_number.toLowerCase().includes(searchTerm.toLowerCase())) {
+          return true;
+        }
+        // Search in chemical names
+        return order.items.some(item => {
+          const chemical = chemicals.find(c => c.id === item.chemical_id);
+          return chemical && chemical.name.toLowerCase().includes(searchTerm.toLowerCase());
+        });
+      });
+    }
+
+    // Filter by amount range
+    if (filters.amountMin !== '') {
+      filtered = filtered.filter(order => order.total_amount >= parseFloat(filters.amountMin));
+    }
+    if (filters.amountMax !== '') {
+      filtered = filtered.filter(order => order.total_amount <= parseFloat(filters.amountMax));
+    }
+
+    // Filter by date range
+    if (filters.dateFrom) {
+      const fromDate = new Date(filters.dateFrom);
+      filtered = filtered.filter(order => new Date(order.created_at) >= fromDate);
+    }
+    if (filters.dateTo) {
+      const toDate = new Date(filters.dateTo);
+      toDate.setHours(23, 59, 59, 999);
+      filtered = filtered.filter(order => new Date(order.created_at) <= toDate);
+    }
+
+    // Filter by status
+    if (filters.status) {
+      filtered = filtered.filter(order => order.status === filters.status);
+    }
+
+    // Filter by supplier
+    if (filters.supplier.trim()) {
+      filtered = filtered.filter(order => 
+        order.supplier && order.supplier.toLowerCase().includes(filters.supplier.toLowerCase())
+      );
+    }
+
+    return filtered;
+  };
+
   if (loading) {
     return <div className={styles.loading}>Loading account dashboard...</div>;
   }
@@ -215,6 +332,149 @@ export default function AccountTeamDashboard() {
         </button>
       </div>
 
+      {/* Search and Filter Section */}
+      <div className={styles.searchFilterSection}>
+        <div className={styles.searchBar}>
+          <div className={styles.searchInput}>
+            <Search size={16} className={styles.searchIcon} />
+            <input
+              type="text"
+              placeholder={activeTab === 'transactions' ? "Search transactions by chemical name..." : 
+                         activeTab === 'purchase-orders' ? "Search orders by number or chemical name..." : 
+                         "Search..."}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className={styles.searchField}
+            />
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm('')}
+                className={styles.clearSearch}
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className={`${styles.filterToggle} ${showFilters ? styles.active : ''}`}
+          >
+            <Filter size={16} />
+            Filters
+            {Object.values(filters).some(value => value !== '' && value !== false) && (
+              <span className={styles.filterBadge}>•</span>
+            )}
+          </button>
+        </div>
+
+        {showFilters && (
+          <div className={styles.filterPanel}>
+            <div className={styles.filterGrid}>
+              <div className={styles.filterGroup}>
+                <label>Amount Range</label>
+                <div className={styles.rangeInputs}>
+                  <input
+                    type="number"
+                    placeholder="Min $"
+                    value={filters.amountMin}
+                    onChange={(e) => setFilters(prev => ({ ...prev, amountMin: e.target.value }))}
+                    className={styles.rangeInput}
+                  />
+                  <span>-</span>
+                  <input
+                    type="number"
+                    placeholder="Max $"
+                    value={filters.amountMax}
+                    onChange={(e) => setFilters(prev => ({ ...prev, amountMax: e.target.value }))}
+                    className={styles.rangeInput}
+                  />
+                </div>
+              </div>
+
+              <div className={styles.filterGroup}>
+                <label>Date Range</label>
+                <div className={styles.dateInputs}>
+                  <input
+                    type="date"
+                    value={filters.dateFrom}
+                    onChange={(e) => setFilters(prev => ({ ...prev, dateFrom: e.target.value }))}
+                    className={styles.dateInput}
+                  />
+                  <span>to</span>
+                  <input
+                    type="date"
+                    value={filters.dateTo}
+                    onChange={(e) => setFilters(prev => ({ ...prev, dateTo: e.target.value }))}
+                    className={styles.dateInput}
+                  />
+                </div>
+              </div>
+
+              <div className={styles.filterGroup}>
+                <label>Status</label>
+                <select
+                  value={filters.status}
+                  onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
+                  className={styles.selectInput}
+                >
+                  <option value="">All Statuses</option>
+                  <option value="pending">Pending</option>
+                  <option value="completed">Completed</option>
+                  <option value="cancelled">Cancelled</option>
+                  <option value="draft">Draft</option>
+                  <option value="submitted">Submitted</option>
+                  <option value="approved">Approved</option>
+                </select>
+              </div>
+
+              {activeTab === 'transactions' && (
+                <div className={styles.filterGroup}>
+                  <label>Transaction Type</label>
+                  <select
+                    value={filters.transactionType}
+                    onChange={(e) => setFilters(prev => ({ ...prev, transactionType: e.target.value }))}
+                    className={styles.selectInput}
+                  >
+                    <option value="">All Types</option>
+                    <option value="purchase">Purchase</option>
+                    <option value="sale">Sale</option>
+                    <option value="adjustment">Adjustment</option>
+                  </select>
+                </div>
+              )}
+
+              <div className={styles.filterGroup}>
+                <label>Supplier</label>
+                <input
+                  type="text"
+                  placeholder="Search by supplier..."
+                  value={filters.supplier}
+                  onChange={(e) => setFilters(prev => ({ ...prev, supplier: e.target.value }))}
+                  className={styles.textInput}
+                />
+              </div>
+            </div>
+
+            <div className={styles.filterActions}>
+              <button
+                onClick={() => setFilters({
+                  amountMin: '',
+                  amountMax: '',
+                  dateFrom: '',
+                  dateTo: '',
+                  status: '',
+                  transactionType: '',
+                  supplier: ''
+                })}
+                className={styles.clearFilters}
+              >
+                Clear All Filters
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
       {/* Tab Content */}
       <div className={styles.tabContent}>
         {activeTab === 'overview' && (
@@ -258,7 +518,7 @@ export default function AccountTeamDashboard() {
         {activeTab === 'transactions' && (
           <div className={styles.transactionsSection}>
             <div className={styles.sectionHeader}>
-              <h3>All Transactions ({transactions.length})</h3>
+              <h3>All Transactions ({getFilteredTransactions().length} of {transactions.length})</h3>
               <button 
                 onClick={() => setShowTransactionForm(true)}
                 className={styles.addBtn}
@@ -282,7 +542,7 @@ export default function AccountTeamDashboard() {
                   </tr>
                 </thead>
                 <tbody>
-                  {transactions.map(transaction => (
+                  {getFilteredTransactions().map(transaction => (
                     <tr key={transaction.id}>
                       <td>{transaction.transaction_type}</td>
                       <td>
@@ -311,7 +571,7 @@ export default function AccountTeamDashboard() {
         {activeTab === 'purchase-orders' && (
           <div className={styles.purchaseOrdersSection}>
             <div className={styles.sectionHeader}>
-              <h3>Purchase Orders ({purchaseOrders.length})</h3>
+              <h3>Purchase Orders ({getFilteredPurchaseOrders().length} of {purchaseOrders.length})</h3>
               <button 
                 onClick={() => setShowPurchaseOrderForm(true)}
                 className={styles.addBtn}
@@ -322,7 +582,7 @@ export default function AccountTeamDashboard() {
               </button>
             </div>
             <div className={styles.purchaseOrdersList}>
-              {purchaseOrders.map(order => (
+              {getFilteredPurchaseOrders().map(order => (
                 <div key={order.id} className={styles.purchaseOrderCard}>
                   <div className={styles.orderHeader}>
                     <h4>{order.order_number}</h4>

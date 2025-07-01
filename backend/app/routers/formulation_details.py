@@ -29,7 +29,7 @@ def get_formulation_details(
             detail="User not approved"
         )
     
-    formulations = crud_formulation_details.get_formulation_details(
+    formulations = crud_formulation_details.get_formulation_details_with_user_info(
         db=db, 
         skip=skip, 
         limit=limit, 
@@ -74,7 +74,7 @@ def get_formulation_details_by_chemical(
             detail="User not approved"
         )
     
-    formulations = crud_formulation_details.get_formulation_details_by_chemical(
+    formulations = crud_formulation_details.get_formulation_details_by_chemical_with_user_info(
         db=db, 
         chemical_id=chemical_id
     )
