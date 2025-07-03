@@ -475,7 +475,7 @@
 .productView {
   .quantityInfo {
     display: flex;
-    justify-content: space-between;
+    justify-content: space-betweenw;
     align-items: center;
     margin-bottom: 8px;
   }
@@ -1253,4 +1253,208 @@
       font-size: 9px;
     }
   }
+}
+
+.notificationMenu {
+  position: relative;
+  display: inline-block;
+}
+
+.notificationDropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background: white;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  min-width: 300px;
+  max-width: 400px;
+  z-index: 1000;
+  margin-top: 4px;
+  overflow: hidden;
+}
+
+.notificationHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid #e9ecef;
+  background: #f8f9fa;
+  
+  h4 {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: #2c3e50;
+  }
+  
+  .unreadCount {
+    font-size: 12px;
+    color: #dc3545;
+    font-weight: 500;
+  }
+}
+
+.notificationLoading, .noNotifications {
+  padding: 20px 16px;
+  text-align: center;
+  color: #6c757d;
+  font-size: 14px;
+}
+
+.notificationsList {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.notificationItem {
+  padding: 12px 16px;
+  border-bottom: 1px solid #f1f3f4;
+  transition: background-color 0.2s ease;
+  cursor: pointer;
+  
+  &:hover {
+    background-color: #f8f9fa;
+  }
+  
+  &:last-child {
+    border-bottom: none;
+  }
+  
+  &.unread {
+    background-color: #e3f2fd;
+    border-left: 3px solid #1976d2;
+    
+    &:hover {
+      background-color: #bbdefb;
+    }
+  }
+}
+
+.notificationContent {
+  .notificationMessage {
+    font-size: 13px;
+    color: #2c3e50;
+    line-height: 1.4;
+    margin-bottom: 6px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  
+  .notificationMeta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 11px;
+    
+    .notificationTime {
+      color: #6c757d;
+    }
+    
+    .notificationPriority {
+      padding: 2px 6px;
+      border-radius: 10px;
+      font-weight: 500;
+      text-transform: uppercase;
+      font-size: 10px;
+      
+      &.high {
+        background: #f8d7da;
+        color: #721c24;
+      }
+      
+      &.mid {
+        background: #fff3cd;
+        color: #856404;
+      }
+      
+      &.low {
+        background: #d1ecf1;
+        color: #0c5460;
+      }
+    }
+  }
+}
+
+.viewAllLink {
+  padding: 12px 16px;
+  border-top: 1px solid #e9ecef;
+  background: #f8f9fa;
+  
+  button {
+    width: 100%;
+    background: none;
+    border: none;
+    color: #007bff;
+    font-size: 12px;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 4px;
+    transition: background-color 0.2s ease;
+    
+    &:hover {
+      background-color: #e3f2fd;
+    }
+  }
+}
+
+// Dark mode support
+.dark .notificationDropdown {
+  background: var(--card-bg);
+  border-color: var(--border-color);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.dark .notificationHeader {
+  background: var(--tertiary-bg);
+  border-bottom-color: var(--border-color);
+  
+  h4 {
+    color: var(--primary-text);
+  }
+}
+
+.dark .notificationItem {
+  border-bottom-color: var(--border-color);
+  
+  &:hover {
+    background-color: var(--tertiary-bg);
+  }
+  
+  &.unread {
+    background-color: rgba(25, 118, 210, 0.1);
+    
+    &:hover {
+      background-color: rgba(25, 118, 210, 0.2);
+    }
+  }
+}
+
+.dark .notificationContent .notificationMessage {
+  color: var(--primary-text);
+}
+
+.dark .notificationContent .notificationMeta .notificationTime {
+  color: var(--secondary-text);
+}
+
+.dark .viewAllLink {
+  border-top-color: var(--border-color);
+  background: var(--tertiary-bg);
+  
+  button {
+    color: var(--accent-color);
+    
+    &:hover {
+      background-color: rgba(0, 123, 255, 0.1);
+    }
+  }
+}
+
+.dark .notificationLoading, .dark .noNotifications {
+  color: var(--secondary-text);
 } 

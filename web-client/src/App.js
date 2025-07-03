@@ -9,6 +9,7 @@ import DashboardPage from './pages/DashboardPage';
 import AdminManagementPage from './pages/AdminManagementPage';
 import ChemicalsDashboard from './components/ChemicalsDashboard';
 import AccountTeamDashboard from './components/AccountTeamDashboard';
+import NotificationDashboard from './components/NotificationDashboard';
 import NavBar from './components/NavBar';
 import SideBar from './components/SideBar';
 import './App.module.scss';
@@ -27,6 +28,11 @@ function AppLayout({ children }) {
   const handleHamburger = () => setSidebarOpen((prev) => !prev);
   const handleSidebarClose = () => setSidebarOpen(false);
 
+  const handleOpenNotificationDashboard = () => {
+    // Navigate to notification dashboard
+    window.location.href = '/notifications';
+  };
+
   return (
     <div style={{ 
       display: 'flex', 
@@ -34,7 +40,7 @@ function AppLayout({ children }) {
       minHeight: '100vh',
       backgroundColor: 'var(--secondary-bg, #f8f9fa)'
     }}>
-      {!isMobile && <NavBar onToggleTheme={toggleTheme} theme={theme} />}
+      {!isMobile && <NavBar onToggleTheme={toggleTheme} theme={theme} onOpenNotificationDashboard={handleOpenNotificationDashboard} />}
       {isMobile && (
         <button
           className={`globalHamburger${sidebarOpen ? ' hide' : ''}`}
@@ -149,6 +155,14 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <AccountTeamDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/notifications"
+        element={
+          <ProtectedRoute>
+            <NotificationDashboard />
           </ProtectedRoute>
         }
       />

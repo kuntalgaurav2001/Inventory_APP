@@ -7,7 +7,8 @@ import {
   Users, 
   FlaskConical, 
   DollarSign, 
-  LogOut 
+  LogOut,
+  Bell
 } from 'lucide-react';
 import styles from './SideBar.module.scss';
 
@@ -25,6 +26,7 @@ export default function SideBar({ open, onClose }) {
   const canAccessAdmin = ['admin'].includes(userRole);
   const canAccessChemicals = ['admin', 'lab_staff', 'product', 'account'].includes(userRole);
   const canAccessAccount = ['admin', 'account'].includes(userRole);
+  const canAccessNotifications = ['admin', 'lab_staff', 'product', 'account', 'all_users'].includes(userRole);
 
   return (
     <>
@@ -66,6 +68,15 @@ export default function SideBar({ open, onClose }) {
               onClick={onClose}
             >
               <DollarSign size={20} /> Account Team
+            </Link>
+          )}
+          {canAccessNotifications && (
+            <Link 
+              to="/notifications" 
+              className={`${styles.navLink} ${isActive('/notifications') ? styles.active : ''}`}
+              onClick={onClose}
+            >
+              <Bell size={20} /> Notifications
             </Link>
           )}
         </nav>

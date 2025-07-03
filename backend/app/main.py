@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.database import engine, check_database_connection
-from app.models import user, activity_log, chemical_inventory, formulation_details, notifications, account_transactions
+from app.models import user, activity_log, chemical_inventory, formulation_details, notifications, account_transactions, alerts
 import os
 
 app = FastAPI(title="Chemical Inventory API", version="1.0.0")
@@ -26,6 +26,7 @@ async def startup_event():
         formulation_details.Base.metadata.create_all(bind=engine)
         notifications.Base.metadata.create_all(bind=engine)
         account_transactions.Base.metadata.create_all(bind=engine)
+        alerts.Base.metadata.create_all(bind=engine)
         print("✅ Database tables created successfully!")
         
         # Check database connection
@@ -45,6 +46,7 @@ from app.routers.user_routes import router as user_router
 from app.routers.chemical_inventory import router as chemical_inventory_router
 from app.routers.formulation_details import router as formulation_details_router
 from app.routers.notifications import router as notifications_router
+from app.routers.alerts import router as alerts_router
 from app.routers.account_transactions import router as account_transactions_router
 
 app.include_router(auth_router, prefix="/auth", tags=["Authentication"])
@@ -53,6 +55,7 @@ app.include_router(user_router, prefix="/user", tags=["User"])
 app.include_router(chemical_inventory_router, prefix="/chemicals", tags=["Chemical Inventory"])
 app.include_router(formulation_details_router, prefix="/formulations", tags=["Formulation Details"])
 app.include_router(notifications_router, prefix="/notifications", tags=["Notifications"])
+app.include_router(alerts_router, prefix="/alerts", tags=["Alerts"])
 app.include_router(account_transactions_router, prefix="/account", tags=["Account Transactions"])
 
 @app.get("/")
@@ -66,5 +69,5 @@ def health_check():
     return {
         "status": "healthy" if db_status else "unhealthy",
         "database": "connected" if db_status else "disconnected",
-        "tables": ["users", "activity_logs", "chemical_inventory", "formulation_details", "notifications", "account_transactions", "purchase_orders", "purchase_order_items"]
+        "tables": ["users", "activity_logs", "chemical_inventory", "formulation_details", "notifications", "alerts", "account_transactions", "purchase_orders", "purchase_order_items"]
     }

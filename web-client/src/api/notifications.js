@@ -25,9 +25,18 @@ export const sendNotification = async (notificationData) => {
   return response.json();
 };
 
-// Get notifications
-export const fetchNotifications = async (skip = 0, limit = 100) => {
-  const response = await fetch(`${API_BASE}/notifications?skip=${skip}&limit=${limit}`, {
+// Get notifications with filters
+export const fetchNotifications = async (filters = {}) => {
+  const queryParams = new URLSearchParams();
+  
+  // Add filter parameters
+  Object.keys(filters).forEach(key => {
+    if (filters[key] !== undefined && filters[key] !== null) {
+      queryParams.append(key, filters[key]);
+    }
+  });
+  
+  const response = await fetch(`${API_BASE}/notifications?${queryParams.toString()}`, {
     headers: getAuthHeaders()
   });
 
@@ -123,6 +132,48 @@ export const deleteNotification = async (notificationId) => {
   if (!response.ok) {
     const error = await response.json();
     throw new Error(error.detail || 'Failed to delete notification');
+  }
+
+  return response.json();
+};
+
+// Get notification categories
+export const fetchNotificationCategories = async () => {
+  const response = await fetch(`${API_BASE}/notifications/categories/list`, {
+    headers: getAuthHeaders()
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to fetch notification categories');
+  }
+
+  return response.json();
+};
+
+// Get notification priorities
+export const fetchNotificationPriorities = async () => {
+  const response = await fetch(`${API_BASE}/notifications/priorities/list`, {
+    headers: getAuthHeaders()
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to fetch notification priorities');
+  }
+
+  return response.json();
+};
+
+// Get notification statuses
+export const fetchNotificationStatuses = async () => {
+  const response = await fetch(`${API_BASE}/notifications/statuses/list`, {
+    headers: getAuthHeaders()
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to fetch notification statuses');
   }
 
   return response.json();
