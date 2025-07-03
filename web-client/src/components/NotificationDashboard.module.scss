@@ -1,0 +1,778 @@
+.dashboard {
+  padding: 24px;
+  max-width: 1200px;
+  margin: 0 auto;
+  background: var(--secondary-bg);
+  min-height: 100vh;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 32px;
+  background: var(--card-bg);
+  padding: 24px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px var(--shadow-color);
+
+  .headerLeft {
+    h1 {
+      margin: 0 0 8px 0;
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--primary-text);
+    }
+
+    p {
+      margin: 0;
+      color: var(--secondary-text);
+      font-size: 16px;
+    }
+  }
+
+  .headerRight {
+    .createButton {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+      }
+    }
+  }
+}
+
+.controls {
+  background: var(--card-bg);
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px var(--shadow-color);
+  margin-bottom: 24px;
+
+  .searchSection {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+
+    .searchBox {
+      flex: 1;
+      position: relative;
+      max-width: 400px;
+
+      svg {
+        position: absolute;
+        left: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--secondary-text);
+      }
+
+      input {
+        width: 100%;
+        padding: 12px 12px 12px 40px;
+        border: 2px solid var(--input-border);
+        border-radius: 8px;
+        font-size: 14px;
+        background: var(--input-bg);
+        color: var(--input-text);
+        transition: border-color 0.3s ease, background-color 0.3s, color 0.3s;
+
+        &:focus {
+          outline: none;
+          border-color: var(--accent-color);
+        }
+      }
+    }
+
+    .filterButton {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--secondary-bg);
+      border: 2px solid var(--input-border);
+      padding: 12px 16px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      color: var(--primary-text);
+      transition: all 0.3s ease;
+
+      &:hover {
+        background: var(--tertiary-bg);
+        border-color: var(--border-color);
+      }
+    }
+  }
+
+  .filtersPanel {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border-color);
+
+    .filterRow {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+
+      select {
+        padding: 10px 12px;
+        border: 2px solid var(--input-border);
+        border-radius: 6px;
+        font-size: 14px;
+        background: var(--input-bg);
+        color: var(--input-text);
+        cursor: pointer;
+        transition: border-color 0.3s, background-color 0.3s, color 0.3s;
+
+        &:focus {
+          outline: none;
+          border-color: var(--accent-color);
+        }
+      }
+    }
+  }
+}
+
+.notificationsList {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+
+  .loading {
+    text-align: center;
+    padding: 40px;
+    color: #6c757d;
+    font-size: 16px;
+  }
+
+  .emptyState {
+    text-align: center;
+    padding: 60px 20px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+
+    svg {
+      color: #6c757d;
+      margin-bottom: 16px;
+    }
+
+    h3 {
+      margin: 0 0 8px 0;
+      color: #2c3e50;
+      font-size: 20px;
+    }
+
+    p {
+      margin: 0;
+      color: #6c757d;
+      font-size: 14px;
+    }
+  }
+}
+
+.notificationCard {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  border-left: 4px solid #e9ecef;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  }
+
+  &.unread {
+    border-left-color: #667eea;
+    background: linear-gradient(135deg, #f8f9ff 0%, #ffffff 100%);
+  }
+
+  .notificationHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 16px;
+
+    .notificationMeta {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+
+      .notificationType {
+        font-weight: 600;
+        color: #2c3e50;
+        font-size: 14px;
+      }
+
+      .priority, .status {
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 11px;
+        font-weight: 600;
+        color: white;
+        text-transform: uppercase;
+      }
+    }
+
+    .notificationActions {
+      display: flex;
+      gap: 8px;
+
+      .actionButton {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        border: none;
+        border-radius: 6px;
+        background: #f8f9fa;
+        color: #6c757d;
+        cursor: pointer;
+        transition: all 0.3s ease;
+
+        &:hover {
+          background: #e9ecef;
+          color: #495057;
+        }
+
+        &.deleteButton:hover {
+          background: #dc3545;
+          color: white;
+        }
+      }
+    }
+  }
+
+  .notificationContent {
+    margin-bottom: 16px;
+
+    .message {
+      margin: 0 0 12px 0;
+      font-size: 14px;
+      line-height: 1.5;
+      color: #2c3e50;
+    }
+
+    .notificationDetails {
+      display: flex;
+      gap: 16px;
+      font-size: 12px;
+      color: #6c757d;
+      flex-wrap: wrap;
+
+      .category {
+        text-transform: uppercase;
+        font-weight: 600;
+        color: #667eea;
+      }
+
+      .creator {
+        font-style: italic;
+      }
+    }
+  }
+
+  .statusActions {
+    .statusSelect {
+      padding: 8px 12px;
+      border: 2px solid #e9ecef;
+      border-radius: 6px;
+      font-size: 13px;
+      background: white;
+      cursor: pointer;
+      transition: border-color 0.3s ease;
+
+      &:focus {
+        outline: none;
+        border-color: #667eea;
+      }
+    }
+  }
+}
+
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+
+  .modalContent {
+    background: white;
+    border-radius: 12px;
+    max-width: 600px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    padding: 0 24px 24px 24px;
+
+    .modalHeader {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 24px 24px 0 24px;
+      border-bottom: 1px solid #e9ecef;
+      margin-bottom: 24px;
+
+      h2 {
+        margin: 0;
+        color: #2c3e50;
+        font-size: 20px;
+      }
+
+      .closeButton {
+        background: none;
+        border: none;
+        color: #6c757d;
+        cursor: pointer;
+        padding: 8px;
+        border-radius: 6px;
+        transition: all 0.3s ease;
+
+        &:hover {
+          background: #f8f9fa;
+          color: #495057;
+        }
+      }
+    }
+
+    .formActions {
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+      margin-top: 24px;
+
+      button {
+        padding: 12px 24px;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        border: none;
+      }
+
+      button:first-child {
+        background: #f8f9fa;
+        color: #6c757d;
+        border: 2px solid #e9ecef;
+      }
+      button:first-child:hover {
+        background: #e9ecef;
+        color: #495057;
+        border-color: #dee2e6;
+      }
+
+      .deleteButton {
+        background: linear-gradient(135deg, #dc3545 0%, #ff7675 100%);
+        color: white;
+        border: none;
+        box-shadow: 0 4px 12px rgba(220, 53, 69, 0.15);
+      }
+      .deleteButton:hover {
+        background: #c82333;
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(220, 53, 69, 0.25);
+      }
+    }
+
+    .detailContent {
+      padding: 0 24px 24px 24px;
+
+      .detailRow {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        padding: 12px 0;
+        border-bottom: 1px solid #f8f9fa;
+
+        &:last-child {
+          border-bottom: none;
+        }
+
+        strong {
+          color: #2c3e50;
+          font-weight: 600;
+          min-width: 120px;
+        }
+
+        span {
+          color: #6c757d;
+          text-align: right;
+          flex: 1;
+          margin-left: 16px;
+        }
+      }
+
+      p {
+        color: #111 !important;
+      }
+    }
+  }
+}
+
+.createForm {
+  padding: 0 24px 24px 24px;
+
+  .formRow {
+    margin-bottom: 20px;
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      color: #2c3e50;
+      font-size: 14px;
+    }
+
+    input, textarea, select {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #e9ecef;
+      border-radius: 8px;
+      font-size: 14px;
+      transition: border-color 0.3s ease;
+      box-sizing: border-box;
+
+      &:focus {
+        outline: none;
+        border-color: #667eea;
+      }
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+  }
+
+  .formActions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    margin-top: 32px;
+
+    button {
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+
+      &:first-child {
+        background: #f8f9fa;
+        border: 2px solid #e9ecef;
+        color: #6c757d;
+
+        &:hover {
+          background: #e9ecef;
+          border-color: #dee2e6;
+        }
+      }
+
+      &.submitButton {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+        color: white;
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+
+        &:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+        }
+      }
+    }
+  }
+}
+
+.detailContent {
+  padding: 0 24px 24px 24px;
+
+  .detailRow {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 12px 0;
+    border-bottom: 1px solid #f8f9fa;
+
+    &:last-child {
+      border-bottom: none;
+    }
+
+    strong {
+      color: #2c3e50;
+      font-weight: 600;
+      min-width: 120px;
+    }
+
+    span {
+      color: #6c757d;
+      text-align: right;
+      flex: 1;
+      margin-left: 16px;
+    }
+  }
+}
+
+// Responsive design
+@media (max-width: 768px) {
+  .dashboard {
+    padding: 16px;
+  }
+
+  .header {
+    flex-direction: column;
+    gap: 16px;
+    text-align: center;
+
+    .headerLeft h1 {
+      font-size: 24px;
+    }
+  }
+
+  .controls .searchSection {
+    flex-direction: column;
+    align-items: stretch;
+
+    .searchBox {
+      max-width: none;
+    }
+  }
+
+  .notificationCard .notificationHeader {
+    flex-direction: column;
+    gap: 12px;
+    align-items: stretch;
+
+    .notificationMeta {
+      justify-content: flex-start;
+    }
+
+    .notificationActions {
+      justify-content: flex-end;
+    }
+  }
+
+  .modal .modalContent {
+    margin: 20px;
+    max-height: calc(100vh - 40px);
+  }
+
+  .createForm .formActions {
+    flex-direction: column;
+
+    button {
+      width: 100%;
+    }
+  }
+}
+
+@media (max-width: 600px) {
+  .dashboard {
+    padding: 16px;
+  }
+  .controls {
+    padding: 16px;
+    margin: 0 -8px 24px -8px;
+  }
+  .controls .searchSection {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  .controls .searchSection .searchBox {
+    max-width: none;
+    width: 100%;
+  }
+  .controls .searchSection .searchBox input {
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .controls .searchSection .filterButton {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+.dark .dashboard {
+  background: #181a1b;
+}
+.dark .header {
+  background: #23272f;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+}
+.dark .header .headerLeft h1 {
+  color: #f3f6fa;
+}
+.dark .header .headerLeft p {
+  color: #b0b8c1;
+}
+.dark .header .headerRight .createButton {
+  background: linear-gradient(135deg, #4f5bd5 0%, #5f2c82 100%);
+  color: #fff;
+}
+.dark .controls {
+  background: #23272f;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+}
+.dark .controls .searchSection .searchBox input {
+  background: #23272f;
+  color: #f3f6fa;
+  border-color: #353b48;
+}
+.dark .controls .searchSection .searchBox input:focus {
+  border-color: #4f5bd5;
+}
+.dark .controls .searchSection .filterButton {
+  background: #23272f;
+  border-color: #353b48;
+  color: #b0b8c1;
+}
+.dark .controls .searchSection .filterButton:hover {
+  background: #353b48;
+  border-color: #4f5bd5;
+}
+.dark .controls .filtersPanel {
+  border-top: 1px solid #353b48;
+}
+.dark .controls .filtersPanel .filterRow select {
+  background: #23272f;
+  color: #f3f6fa;
+  border-color: #353b48;
+}
+.dark .notificationsList .emptyState {
+  background: #23272f;
+  color: #b0b8c1;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+}
+.dark .notificationsList .emptyState h3 {
+  color: #f3f6fa;
+}
+.dark .notificationCard {
+  background: #23272f;
+  color: #f3f6fa;
+  border-left: 4px solid #353b48;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+}
+.dark .notificationCard.unread {
+  background: linear-gradient(135deg, #23272f 0%, #181a1b 100%);
+  border-left-color: #4f5bd5;
+}
+.dark .notificationCard .notificationHeader .notificationMeta .notificationType {
+  color: #f3f6fa;
+}
+.dark .notificationCard .notificationContent .message {
+  color: #f3f6fa;
+}
+.dark .notificationCard .notificationContent .notificationDetails {
+  color: #b0b8c1;
+}
+.dark .notificationCard .notificationContent .notificationDetails .category {
+  color: #4f5bd5;
+}
+.dark .notificationCard .notificationActions .actionButton {
+  background: #23272f;
+  color: #b0b8c1;
+}
+.dark .notificationCard .notificationActions .actionButton:hover {
+  background: #353b48;
+  color: #fff;
+}
+.dark .notificationCard .notificationActions .actionButton.deleteButton:hover {
+  background: #dc3545;
+  color: #fff;
+}
+.dark .notificationCard .statusActions .statusSelect {
+  background: #23272f;
+  color: #f3f6fa;
+  border-color: #353b48;
+}
+.dark .modal {
+  background: rgba(24, 26, 27, 0.85);
+}
+.dark .modal .modalContent {
+  background: #23272f;
+  color: #f3f6fa;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.7);
+}
+.dark .modal .modalContent .modalHeader {
+  border-bottom: 1px solid #353b48;
+}
+.dark .modal .modalContent .modalHeader h2 {
+  color: #f3f6fa;
+}
+.dark .modal .modalContent .modalHeader .closeButton {
+  color: #b0b8c1;
+}
+.dark .modal .modalContent .modalHeader .closeButton:hover {
+  background: #353b48;
+  color: #fff;
+}
+.dark .modal .modalContent .formActions button {
+  background: #181a1b;
+  color: #b0b8c1;
+  border: 2px solid #353b48;
+}
+.dark .modal .modalContent .formActions button:hover {
+  background: #353b48;
+  color: #fff;
+}
+.dark .modal .modalContent .formActions .deleteButton {
+  background: linear-gradient(135deg, #dc3545 0%, #ff7675 100%);
+  color: #fff;
+  border: none;
+}
+.dark .modal .modalContent .formActions .deleteButton:hover {
+  background: #c82333;
+  color: #fff;
+}
+.dark .modalContent .detailContent p {
+  color: #111 !important;
+}
+
+select, option {
+  color: var(--input-text);
+  background: var(--input-bg);
+}
+
+[data-theme="dark"] select, [data-theme="dark"] option {
+  color: var(--input-text, #fff);
+  background: var(--input-bg, #23272f) !important;
+}
+
+.modalContent .detailContent p {
+  color: #111 !important;
+}
+[data-theme="dark"] .modalContent .detailContent p {
+  color: #111 !important;
+} 

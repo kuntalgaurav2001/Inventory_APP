@@ -48,6 +48,10 @@ export default function ChemicalsDashboard() {
   const [alerts, setAlerts] = useState([]);
   const [showAlerts, setShowAlerts] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showNotificationMenu, setShowNotificationMenu] = useState(false);
+  const [notificationMenuTimeout, setNotificationMenuTimeout] = useState(null);
+  const [notifications, setNotifications] = useState([]);
+  const [loadingNotifications, setLoadingNotifications] = useState(false);
   const [purchaseHistory, setPurchaseHistory] = useState({});
   
   // Search and filter states
@@ -70,6 +74,15 @@ export default function ChemicalsDashboard() {
   useEffect(() => {
     loadChemicals();
   }, []);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (notificationMenuTimeout) {
+        clearTimeout(notificationMenuTimeout);
+      }
+    };
+  }, [notificationMenuTimeout]);
 
   const loadChemicals = async () => {
     try {
@@ -405,6 +418,31 @@ export default function ChemicalsDashboard() {
     canManageAlerts
   });
 
+  const loadNotifications = async () => {
+    try {
+      setLoadingNotifications(true);
+      const response = await fetch('/api/notifications/', {
+        headers: {
+          'Authorization': `Bearer ${await user.getIdToken()}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setNotifications(data);
+      } else {
+        console.error('Failed to fetch notifications');
+        setNotifications([]);
+      }
+    } catch (err) {
+      console.error('Error loading notifications:', err);
+      setNotifications([]);
+    } finally {
+      setLoadingNotifications(false);
+    }
+  };
+
   if (loading) {
     return <div className={styles.loading}>Loading chemical inventory...</div>;
   }
@@ -417,7 +455,7 @@ export default function ChemicalsDashboard() {
           <span style={{ fontSize: '14px', color: '#666' }}>
             Role: {userRole} | Chemicals: {chemicals.length}
           </span>
-          {alerts.length > 0 && canManageAlerts && (
+          {alerts.length > 0 && (
             <button 
               onClick={() => setShowAlerts(!showAlerts)}
               style={{
@@ -433,25 +471,6 @@ export default function ChemicalsDashboard() {
             >
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                 <AlertTriangle size={16} /> Alerts ({alerts.length})
-              </span>
-            </button>
-          )}
-          {canManageAlerts && (
-            <button 
-              onClick={() => setShowNotifications(!showNotifications)}
-              style={{
-                background: '#17a2b8',
-                color: 'white',
-                border: 'none',
-                padding: '8px 12px',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontSize: '12px',
-                fontWeight: '500'
-              }}
-            >
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                <Bell size={16} /> Notifications
               </span>
             </button>
           )}
