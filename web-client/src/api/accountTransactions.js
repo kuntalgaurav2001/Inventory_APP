@@ -85,6 +85,34 @@ export const deleteTransaction = async (transactionId) => {
   return response.json();
 };
 
+export const approveTransaction = async (transactionId) => {
+  const response = await fetch(`${API_BASE}/account/transactions/${transactionId}/approve`, {
+    method: 'PUT',
+    headers: getAuthHeaders()
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to approve transaction');
+  }
+
+  return response.json();
+};
+
+export const rejectTransaction = async (transactionId) => {
+  const response = await fetch(`${API_BASE}/account/transactions/${transactionId}/reject`, {
+    method: 'PUT',
+    headers: getAuthHeaders()
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to reject transaction');
+  }
+
+  return response.json();
+};
+
 // Purchase Orders
 export const createPurchaseOrder = async (purchaseOrderData) => {
   const response = await fetch(`${API_BASE}/account/purchase-orders`, {

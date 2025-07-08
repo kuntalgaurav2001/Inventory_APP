@@ -9,11 +9,21 @@ import {
   fetchRecentTransactions,
   fetchPendingPurchases,
   createTransaction,
-  createPurchaseOrder
+  createPurchaseOrder,
+  approveTransaction,
+  rejectTransaction
 } from '../api/accountTransactions';
-import { fetchChemicals } from '../api/chemicals';
+import { fetchChemicals, createChemical } from '../api/chemicals';
 import { sendNotification } from '../api/notifications';
 import styles from './AccountTeamDashboard.module.scss';
+
+// Utility function for currency formatting
+const formatCurrency = (amount, currency = 'INR') => {
+  return new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: currency
+  }).format(amount);
+};
 
 export default function AccountTeamDashboard() {
   const [summary, setSummary] = useState(null);
@@ -27,6 +37,7 @@ export default function AccountTeamDashboard() {
   const [activeTab, setActiveTab] = useState('overview');
   const [showTransactionForm, setShowTransactionForm] = useState(false);
   const [showPurchaseOrderForm, setShowPurchaseOrderForm] = useState(false);
+  const [transactionSuccess, setTransactionSuccess] = useState(false);
   
   // Search and filter states
   const [searchTerm, setSearchTerm] = useState('');
@@ -59,12 +70,37 @@ export default function AccountTeamDashboard() {
         pendingPurchasesData,
         chemicalsData
       ] = await Promise.all([
-        fetchAccountSummary(),
-        fetchTransactions(),
-        fetchPurchaseOrders(),
-        fetchRecentTransactions(),
-        fetchPendingPurchases(),
-        fetchChemicals()
+        fetchAccountSummary().catch(err => {
+          console.error('Error fetching account summary:', err);
+          return {
+            total_purchases: 0,
+            total_transactions: 0,
+            pending_orders: 0,
+            total_spent_this_month: 0,
+            total_spent_this_year: 0,
+            currency: "INR"
+          };
+        }),
+        fetchTransactions().catch(err => {
+          console.error('Error fetching transactions:', err);
+          return [];
+        }),
+        fetchPurchaseOrders().catch(err => {
+          console.error('Error fetching purchase orders:', err);
+          return [];
+        }),
+        fetchRecentTransactions().catch(err => {
+          console.error('Error fetching recent transactions:', err);
+          return [];
+        }),
+        fetchPendingPurchases().catch(err => {
+          console.error('Error fetching pending purchases:', err);
+          return [];
+        }),
+        fetchChemicals().catch(err => {
+          console.error('Error fetching chemicals:', err);
+          return [];
+        })
       ]);
 
       setSummary(summaryData);
@@ -86,18 +122,25 @@ export default function AccountTeamDashboard() {
     try {
       await createTransaction(transactionData);
       
+      // Get chemical name for notification
+      const chemical = chemicals.find(c => c.id === transactionData.chemical_id);
+      const chemicalName = chemical ? chemical.name : 'Unknown Chemical';
+      
       // Send notification about the transaction
       await sendNotification({
         type: 'purchase_transaction',
         severity: 'info',
-        message: `New transaction created: ${transactionData.quantity} ${transactionData.unit} of chemical purchased for $${transactionData.amount}`,
+        message: `New transaction created: ${transactionData.quantity} ${transactionData.unit} of ${chemicalName} purchased for ${formatCurrency(transactionData.amount, transactionData.currency || 'INR')}`,
         chemical_id: transactionData.chemical_id,
         recipients: ['admin', 'product']
       });
       
       await loadDashboardData();
-      setShowTransactionForm(false);
+      setTransactionSuccess(true);
       setError('');
+      
+      // Hide success message after 3 seconds
+      setTimeout(() => setTransactionSuccess(false), 3000);
     } catch (err) {
       console.error('Error creating transaction:', err);
       setError(err.message || 'Failed to create transaction');
@@ -125,24 +168,70 @@ export default function AccountTeamDashboard() {
     }
   };
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'pending': return '#ffc107';
-      case 'ordered': return '#17a2b8';
-      case 'delivered': return '#28a745';
-      case 'cancelled': return '#dc3545';
-      case 'draft': return '#6c757d';
-      case 'submitted': return '#fd7e14';
-      case 'approved': return '#20c997';
-      default: return '#6c757d';
+  const handleApproveTransaction = async (transactionId) => {
+    if (!window.confirm('Are you sure you want to approve this transaction?')) {
+      return;
+    }
+    
+    try {
+      await approveTransaction(transactionId);
+      
+      // Send notification about the approval
+      await sendNotification({
+        type: 'transaction_approved',
+        severity: 'success',
+        message: `Transaction ${transactionId} has been approved`,
+        recipients: ['account']
+      });
+      
+      await loadDashboardData();
+      setError('');
+    } catch (err) {
+      console.error('Error approving transaction:', err);
+      setError(err.message || 'Failed to approve transaction');
     }
   };
 
-  const formatCurrency = (amount, currency = 'USD') => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: currency
-    }).format(amount);
+  const handleRejectTransaction = async (transactionId) => {
+    if (!window.confirm('Are you sure you want to reject this transaction?')) {
+      return;
+    }
+    
+    try {
+      await rejectTransaction(transactionId);
+      
+      // Send notification about the rejection
+      await sendNotification({
+        type: 'transaction_rejected',
+        severity: 'warning',
+        message: `Transaction ${transactionId} has been rejected`,
+        recipients: ['account']
+      });
+      
+      await loadDashboardData();
+      setError('');
+    } catch (err) {
+      console.error('Error rejecting transaction:', err);
+      setError(err.message || 'Failed to reject transaction');
+    }
+  };
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      // Transaction statuses
+      case 'pending': return '#ffc107';
+      case 'completed': return '#28a745';
+      case 'cancelled': return '#dc3545';
+      
+      // Purchase order statuses
+      case 'draft': return '#6c757d';
+      case 'submitted': return '#fd7e14';
+      case 'approved': return '#20c997';
+      case 'ordered': return '#17a2b8';
+      case 'delivered': return '#28a745';
+      
+      default: return '#6c757d';
+    }
   };
 
   // Filter transactions based on search term and filters
@@ -249,6 +338,57 @@ export default function AccountTeamDashboard() {
     return filtered;
   };
 
+  // Filter recent transactions for overview tab
+  const getFilteredRecentTransactions = () => {
+    let filtered = [...recentTransactions];
+
+    // Search by chemical name
+    if (searchTerm.trim()) {
+      filtered = filtered.filter(transaction => {
+        const chemical = chemicals.find(c => c.id === transaction.chemical_id);
+        return chemical && chemical.name.toLowerCase().includes(searchTerm.toLowerCase());
+      });
+    }
+
+    // Filter by amount range
+    if (filters.amountMin !== '') {
+      filtered = filtered.filter(transaction => transaction.amount >= parseFloat(filters.amountMin));
+    }
+    if (filters.amountMax !== '') {
+      filtered = filtered.filter(transaction => transaction.amount <= parseFloat(filters.amountMax));
+    }
+
+    // Filter by date range
+    if (filters.dateFrom) {
+      const fromDate = new Date(filters.dateFrom);
+      filtered = filtered.filter(transaction => new Date(transaction.created_at) >= fromDate);
+    }
+    if (filters.dateTo) {
+      const toDate = new Date(filters.dateTo);
+      toDate.setHours(23, 59, 59, 999);
+      filtered = filtered.filter(transaction => new Date(transaction.created_at) <= toDate);
+    }
+
+    // Filter by status
+    if (filters.status) {
+      filtered = filtered.filter(transaction => transaction.status === filters.status);
+    }
+
+    // Filter by transaction type
+    if (filters.transactionType) {
+      filtered = filtered.filter(transaction => transaction.transaction_type === filters.transactionType);
+    }
+
+    // Filter by supplier
+    if (filters.supplier.trim()) {
+      filtered = filtered.filter(transaction => 
+        transaction.supplier && transaction.supplier.toLowerCase().includes(filters.supplier.toLowerCase())
+      );
+    }
+
+    return filtered;
+  };
+
   if (loading) {
     return <div className={styles.loading}>Loading account dashboard...</div>;
   }
@@ -260,7 +400,7 @@ export default function AccountTeamDashboard() {
         <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
           <span style={{ fontSize: '14px', color: '#666' }}>
             Role: {userInfo?.role || user?.role || 'account'} | 
-            Total Spent: {summary ? formatCurrency(summary.total_purchases) : '$0'}
+            Total Spent: {summary ? formatCurrency(summary.total_purchases, 'INR') : '₹0'}
           </span>
           <button onClick={() => navigate('/dashboard')} className={styles.backBtn}>
             Back to Dashboard
@@ -339,7 +479,8 @@ export default function AccountTeamDashboard() {
             <Search size={16} className={styles.searchIcon} />
             <input
               type="text"
-              placeholder={activeTab === 'transactions' ? "Search transactions by chemical name..." : 
+              placeholder={activeTab === 'overview' ? "Search recent transactions by chemical name..." : 
+                         activeTab === 'transactions' ? "Search transactions by chemical name..." : 
                          activeTab === 'purchase-orders' ? "Search orders by number or chemical name..." : 
                          "Search..."}
               value={searchTerm}
@@ -424,6 +565,8 @@ export default function AccountTeamDashboard() {
                   <option value="draft">Draft</option>
                   <option value="submitted">Submitted</option>
                   <option value="approved">Approved</option>
+                  <option value="ordered">Ordered</option>
+                  <option value="delivered">Delivered</option>
                 </select>
               </div>
 
@@ -480,16 +623,16 @@ export default function AccountTeamDashboard() {
         {activeTab === 'overview' && (
           <div className={styles.overviewSection}>
             <div className={styles.recentTransactions}>
-              <h3>Recent Transactions</h3>
+              <h3>Recent Transactions ({getFilteredRecentTransactions().length} of {recentTransactions.length})</h3>
               <div className={styles.transactionsList}>
-                {recentTransactions.map(transaction => (
+                {getFilteredRecentTransactions().map(transaction => (
                   <div key={transaction.id} className={styles.transactionItem}>
                     <div className={styles.transactionInfo}>
                       <div className={styles.transactionType}>
                         {transaction.transaction_type.toUpperCase()}
                       </div>
                       <div className={styles.transactionAmount}>
-                        {formatCurrency(transaction.amount, transaction.currency)}
+                        {formatCurrency(transaction.amount, transaction.currency || 'INR')}
                       </div>
                     </div>
                     <div className={styles.transactionDetails}>
@@ -539,6 +682,7 @@ export default function AccountTeamDashboard() {
                     <th>Supplier</th>
                     <th>Status</th>
                     <th>Date</th>
+                    <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -549,7 +693,7 @@ export default function AccountTeamDashboard() {
                         {chemicals.find(c => c.id === transaction.chemical_id)?.name || 'Unknown'}
                       </td>
                       <td>{transaction.quantity} {transaction.unit}</td>
-                      <td>{formatCurrency(transaction.amount, transaction.currency)}</td>
+                      <td>{formatCurrency(transaction.amount, transaction.currency || 'INR')}</td>
                       <td>{transaction.supplier || '-'}</td>
                       <td>
                         <span 
@@ -560,6 +704,22 @@ export default function AccountTeamDashboard() {
                         </span>
                       </td>
                       <td>{new Date(transaction.created_at).toLocaleDateString()}</td>
+                      <td>
+                        <button
+                          onClick={() => navigate(`/chemicals/${transaction.chemical_id}`)}
+                          style={{
+                            background: '#007bff',
+                            color: 'white',
+                            border: 'none',
+                            padding: '4px 8px',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            fontSize: '12px'
+                          }}
+                        >
+                          View Details
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -596,7 +756,7 @@ export default function AccountTeamDashboard() {
                   <div className={styles.orderDetails}>
                     <div className={styles.orderInfo}>
                       <p><strong>Supplier:</strong> {order.supplier}</p>
-                      <p><strong>Total Amount:</strong> {formatCurrency(order.total_amount, order.currency)}</p>
+                      <p><strong>Total Amount:</strong> {formatCurrency(order.total_amount, order.currency || 'INR')}</p>
                       <p><strong>Items:</strong> {order.items.length}</p>
                       <p><strong>Created:</strong> {new Date(order.created_at).toLocaleDateString()}</p>
                     </div>
@@ -608,7 +768,8 @@ export default function AccountTeamDashboard() {
                             {chemicals.find(c => c.id === item.chemical_id)?.name || 'Unknown'}
                           </span>
                           <span>{item.quantity} {item.unit}</span>
-                          <span>{formatCurrency(item.total_price, order.currency)}</span>
+                          <span>{formatCurrency(item.unit_price, order.currency || 'INR')}/unit</span>
+                          <span>{formatCurrency(item.total_price, order.currency || 'INR')}</span>
                         </div>
                       ))}
                     </div>
@@ -630,12 +791,16 @@ export default function AccountTeamDashboard() {
                       {chemicals.find(c => c.id === transaction.chemical_id)?.name || 'Unknown Chemical'}
                     </h4>
                     <p><strong>Quantity:</strong> {transaction.quantity} {transaction.unit}</p>
-                    <p><strong>Amount:</strong> {formatCurrency(transaction.amount, transaction.currency)}</p>
+                    <p><strong>Amount:</strong> {formatCurrency(transaction.amount, transaction.currency || 'INR')}</p>
                     <p><strong>Supplier:</strong> {transaction.supplier || 'Not specified'}</p>
                   </div>
                   <div className={styles.pendingActions}>
-                    <button className={styles.approveBtn}>Approve</button>
-                    <button className={styles.rejectBtn}>Reject</button>
+                    {(userInfo?.role === 'admin' || user?.role === 'admin') && (
+                      <>
+                        <button className={styles.approveBtn} onClick={() => handleApproveTransaction(transaction.id)}>Approve</button>
+                        <button className={styles.rejectBtn} onClick={() => handleRejectTransaction(transaction.id)}>Reject</button>
+                      </>
+                    )}
                   </div>
                 </div>
               ))}
@@ -648,6 +813,10 @@ export default function AccountTeamDashboard() {
       {showTransactionForm && (
         <TransactionForm
           chemicals={chemicals}
+          setChemicals={setChemicals}
+          transactionSuccess={transactionSuccess}
+          setTransactionSuccess={setTransactionSuccess}
+          setShowTransactionForm={setShowTransactionForm}
           onSubmit={handleCreateTransaction}
           onCancel={() => setShowTransactionForm(false)}
         />
@@ -666,21 +835,111 @@ export default function AccountTeamDashboard() {
 }
 
 // Transaction Form Component
-function TransactionForm({ chemicals, onSubmit, onCancel }) {
+function TransactionForm({ chemicals, setChemicals, transactionSuccess, setTransactionSuccess, setShowTransactionForm, onSubmit, onCancel }) {
   const [formData, setFormData] = useState({
     chemical_id: '',
     transaction_type: 'purchase',
     quantity: 0,
     unit: '',
     amount: 0,
-    currency: 'USD',
+    currency: 'INR',
     supplier: '',
     status: 'pending',
     notes: ''
   });
 
-  const handleSubmit = (e) => {
+  const [chemicalSearch, setChemicalSearch] = useState('');
+  const [showChemicalDropdown, setShowChemicalDropdown] = useState(false);
+  const [filteredChemicals, setFilteredChemicals] = useState([]);
+  const [isCreatingChemical, setIsCreatingChemical] = useState(false);
+
+  // Filter chemicals based on search
+  useEffect(() => {
+    if (chemicalSearch.trim()) {
+      const filtered = chemicals.filter(chemical =>
+        chemical.name.toLowerCase().includes(chemicalSearch.toLowerCase())
+      );
+      setFilteredChemicals(filtered);
+      setShowChemicalDropdown(true);
+    } else {
+      setFilteredChemicals([]);
+      setShowChemicalDropdown(false);
+    }
+  }, [chemicalSearch, chemicals]);
+
+  const handleChemicalSelect = (chemical) => {
+    setFormData(prev => ({
+      ...prev,
+      chemical_id: chemical.id
+    }));
+    setChemicalSearch(chemical.name);
+    setShowChemicalDropdown(false);
+  };
+
+  const handleChemicalInputChange = async (e) => {
+    const value = e.target.value;
+    setChemicalSearch(value);
+    
+    // If user types something and it's not in the list, show option to create
+    if (value.trim() && !chemicals.find(c => c.name.toLowerCase() === value.toLowerCase())) {
+      setFilteredChemicals([]);
+      setShowChemicalDropdown(true);
+    }
+  };
+
+  const handleCreateNewChemical = async (chemicalName) => {
+    if (!chemicalName.trim()) return;
+    
+    setIsCreatingChemical(true);
+    try {
+      // Add required fields with default values for the backend schema
+      const chemicalData = {
+        name: chemicalName.trim(),
+        quantity: 0, // Default quantity
+        unit: 'g'    // Default unit
+      };
+      
+      const newChemical = await createChemical(chemicalData);
+      
+      // Update the chemicals list locally
+      setChemicals(prevChemicals => [...prevChemicals, newChemical]);
+      
+      // Update the form data and search
+      setFormData(prev => ({
+        ...prev,
+        chemical_id: newChemical.id
+      }));
+      setChemicalSearch(newChemical.name);
+      setShowChemicalDropdown(false);
+      
+      console.log('Chemical created automatically:', newChemical.name);
+    } catch (err) {
+      alert('Failed to create chemical: ' + err.message);
+    } finally {
+      setIsCreatingChemical(false);
+    }
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // If user typed a chemical name but didn't select from dropdown, try to find or create it
+    if (chemicalSearch && !formData.chemical_id) {
+      const foundChemical = chemicals.find(c => 
+        c.name.toLowerCase() === chemicalSearch.toLowerCase()
+      );
+      
+      if (foundChemical) {
+        formData.chemical_id = foundChemical.id;
+      } else {
+        // Auto-create the chemical
+        await handleCreateNewChemical(chemicalSearch);
+        if (!formData.chemical_id) {
+          return; // Creation failed
+        }
+      }
+    }
+    
     onSubmit(formData);
   };
 
@@ -696,18 +955,91 @@ function TransactionForm({ chemicals, onSubmit, onCancel }) {
     <div className={styles.modalOverlay}>
       <div className={styles.modal}>
         <h3>Add Transaction</h3>
+        {transactionSuccess && (
+          <div style={{
+            background: '#d4edda',
+            color: '#155724',
+            padding: '12px',
+            borderRadius: '4px',
+            marginBottom: '16px',
+            border: '1px solid #c3e6cb'
+          }}>
+            ✅ Transaction created successfully! Form cleared for next transaction.
+          </div>
+        )}
         <form onSubmit={handleSubmit}>
           <div className={styles.formGroup}>
             <label>Chemical</label>
-            <select name="chemical_id" value={formData.chemical_id} onChange={handleChange} required>
-              <option value="">Select Chemical</option>
-              {chemicals.map(chemical => (
-                <option key={chemical.id} value={chemical.id}>
-                  {chemical.name}
-                </option>
-              ))}
-            </select>
+            <div style={{ position: 'relative' }}>
+              <input
+                type="text"
+                placeholder="Type chemical name (existing or new)..."
+                value={chemicalSearch}
+                onChange={handleChemicalInputChange}
+                onFocus={() => setShowChemicalDropdown(true)}
+                onBlur={() => setTimeout(() => setShowChemicalDropdown(false), 200)}
+                required
+                style={{ width: '100%', padding: '8px 12px', border: '1px solid #ddd', borderRadius: '4px' }}
+              />
+              {showChemicalDropdown && (
+                <div style={{
+                  position: 'absolute',
+                  top: '100%',
+                  left: 0,
+                  right: 0,
+                  backgroundColor: 'white',
+                  border: '1px solid #ddd',
+                  borderRadius: '4px',
+                  maxHeight: '200px',
+                  overflowY: 'auto',
+                  zIndex: 1000,
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                }}>
+                  {filteredChemicals.length > 0 ? (
+                    // Show existing chemicals
+                    filteredChemicals.map(chemical => (
+                      <div
+                        key={chemical.id}
+                        onClick={() => handleChemicalSelect(chemical)}
+                        style={{
+                          padding: '8px 12px',
+                          cursor: 'pointer',
+                          borderBottom: '1px solid #eee',
+                          ':hover': { backgroundColor: '#f5f5f5' }
+                        }}
+                        onMouseEnter={(e) => e.target.style.backgroundColor = '#f5f5f5'}
+                        onMouseLeave={(e) => e.target.style.backgroundColor = 'white'}
+                      >
+                        {chemical.name}
+                      </div>
+                    ))
+                  ) : chemicalSearch.trim() ? (
+                    // Show option to create new chemical
+                    <div
+                      onClick={() => handleCreateNewChemical(chemicalSearch)}
+                      style={{
+                        padding: '8px 12px',
+                        cursor: 'pointer',
+                        backgroundColor: '#e8f5e8',
+                        borderBottom: '1px solid #ddd',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px'
+                      }}
+                    >
+                      <span style={{ color: '#28a745', fontWeight: 'bold' }}>+</span>
+                      <span>Create "{chemicalSearch}" as new chemical</span>
+                      {isCreatingChemical && <span style={{ fontSize: '12px', color: '#666' }}>(Creating...)</span>}
+                    </div>
+                  ) : null}
+                </div>
+              )}
+            </div>
+            <small style={{ color: '#666', fontSize: '12px', marginTop: '4px' }}>
+              Type to search existing chemicals or create a new one automatically
+            </small>
           </div>
+
           <div className={styles.formGroup}>
             <label>Transaction Type</label>
             <select name="transaction_type" value={formData.transaction_type} onChange={handleChange}>
@@ -762,7 +1094,7 @@ function TransactionForm({ chemicals, onSubmit, onCancel }) {
             <div className={styles.formGroup}>
               <label>Currency</label>
               <select name="currency" value={formData.currency} onChange={handleChange}>
-              <option value="INR">INR</option>
+                <option value="INR">INR</option>
                 <option value="USD">USD</option>
                 <option value="EUR">EUR</option>
                 <option value="GBP">GBP</option>
@@ -780,6 +1112,14 @@ function TransactionForm({ chemicals, onSubmit, onCancel }) {
             />
           </div>
           <div className={styles.formGroup}>
+            <label>Status</label>
+            <select name="status" value={formData.status} onChange={handleChange}>
+              <option value="pending">Pending</option>
+              <option value="completed">Completed</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
+          </div>
+          <div className={styles.formGroup}>
             <label>Notes</label>
             <textarea
               name="notes"
@@ -793,8 +1133,38 @@ function TransactionForm({ chemicals, onSubmit, onCancel }) {
             <button type="button" onClick={onCancel} className={styles.cancelBtn}>
               Cancel
             </button>
-            <button type="submit" className={styles.submitBtn}>
-              Create Transaction
+            <button type="submit" className={styles.submitBtn} disabled={isCreatingChemical}>
+              {isCreatingChemical ? 'Creating Chemical...' : 'Create Transaction'}
+            </button>
+            <button 
+              type="button" 
+              onClick={() => {
+                setShowTransactionForm(false);
+                setTransactionSuccess(false);
+                setFormData({
+                  chemical_id: '',
+                  transaction_type: 'purchase',
+                  quantity: 0,
+                  unit: '',
+                  amount: 0,
+                  currency: 'INR',
+                  supplier: '',
+                  status: 'pending',
+                  notes: ''
+                });
+                setChemicalSearch('');
+              }} 
+              style={{
+                background: '#6c757d',
+                color: 'white',
+                border: 'none',
+                padding: '10px 20px',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontSize: '14px'
+              }}
+            >
+              Close Form
             </button>
           </div>
         </form>
@@ -808,7 +1178,7 @@ function PurchaseOrderForm({ chemicals, onSubmit, onCancel }) {
   const [formData, setFormData] = useState({
     supplier: '',
     total_amount: 0,
-    currency: 'USD',
+    currency: 'INR',
     status: 'draft',
     notes: '',
     items: []
@@ -823,12 +1193,49 @@ function PurchaseOrderForm({ chemicals, onSubmit, onCancel }) {
     notes: ''
   });
 
+  const [chemicalSearch, setChemicalSearch] = useState('');
+  const [showChemicalDropdown, setShowChemicalDropdown] = useState(false);
+  const [filteredChemicals, setFilteredChemicals] = useState([]);
+
+  // Filter chemicals based on search
+  useEffect(() => {
+    if (chemicalSearch.trim()) {
+      const filtered = chemicals.filter(chemical =>
+        chemical.name.toLowerCase().includes(chemicalSearch.toLowerCase())
+      );
+      setFilteredChemicals(filtered);
+      setShowChemicalDropdown(true);
+    } else {
+      setFilteredChemicals([]);
+      setShowChemicalDropdown(false);
+    }
+  }, [chemicalSearch, chemicals]);
+
+  const handleChemicalSelect = (chemical) => {
+    setCurrentItem(prev => ({
+      ...prev,
+      chemical_id: chemical.id
+    }));
+    setChemicalSearch(chemical.name);
+    setShowChemicalDropdown(false);
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     if (formData.items.length === 0) {
       alert('Please add at least one item to the purchase order');
       return;
     }
+    
+    // Validate that all items have valid chemical IDs
+    for (let i = 0; i < formData.items.length; i++) {
+      const item = formData.items[i];
+      if (!item.chemical_id) {
+        alert(`Please select a valid chemical for item ${i + 1}`);
+        return;
+      }
+    }
+    
     onSubmit(formData);
   };
 
@@ -854,6 +1261,19 @@ function PurchaseOrderForm({ chemicals, onSubmit, onCancel }) {
       return;
     }
 
+    // If user typed a chemical name but didn't select from dropdown, try to find it
+    if (chemicalSearch && !currentItem.chemical_id) {
+      const foundChemical = chemicals.find(c => 
+        c.name.toLowerCase() === chemicalSearch.toLowerCase()
+      );
+      if (foundChemical) {
+        currentItem.chemical_id = foundChemical.id;
+      } else {
+        alert('Please select a valid chemical from the dropdown or ensure the chemical name is correct.');
+        return;
+      }
+    }
+
     const total_price = currentItem.quantity * currentItem.unit_price;
     const newItem = {
       ...currentItem,
@@ -874,6 +1294,7 @@ function PurchaseOrderForm({ chemicals, onSubmit, onCancel }) {
       total_price: 0,
       notes: ''
     });
+    setChemicalSearch('');
   };
 
   const removeItem = (index) => {
@@ -905,6 +1326,7 @@ function PurchaseOrderForm({ chemicals, onSubmit, onCancel }) {
             <div className={styles.formGroup}>
               <label>Currency</label>
               <select name="currency" value={formData.currency} onChange={handleChange}>
+                <option value="INR">INR</option>
                 <option value="USD">USD</option>
                 <option value="EUR">EUR</option>
                 <option value="GBP">GBP</option>
@@ -923,14 +1345,26 @@ function PurchaseOrderForm({ chemicals, onSubmit, onCancel }) {
             />
           </div>
 
+          <div className={styles.formGroup}>
+            <label>Status</label>
+            <select name="status" value={formData.status} onChange={handleChange}>
+              <option value="draft">Draft</option>
+              <option value="submitted">Submitted</option>
+              <option value="approved">Approved</option>
+              <option value="ordered">Ordered</option>
+              <option value="delivered">Delivered</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
+          </div>
+
           <div className={styles.itemsSection}>
             <h4>Items</h4>
             {formData.items.map((item, index) => (
               <div key={index} className={styles.itemRow}>
                 <span>{chemicals.find(c => c.id === item.chemical_id)?.name}</span>
                 <span>{item.quantity} {item.unit}</span>
-                <span>${item.unit_price}/unit</span>
-                <span>${item.total_price}</span>
+                <span>{formatCurrency(item.unit_price, formData.currency || 'INR')}/unit</span>
+                <span>{formatCurrency(item.total_price, formData.currency || 'INR')}</span>
                 <button type="button" onClick={() => removeItem(index)} className={styles.removeBtn}>
                   Remove
                 </button>
@@ -939,18 +1373,52 @@ function PurchaseOrderForm({ chemicals, onSubmit, onCancel }) {
 
             <div className={styles.addItemSection}>
               <h5>Add Item</h5>
-              <div className={styles.formRow}>
-                <div className={styles.formGroup}>
-                  <label>Chemical</label>
-                  <select name="chemical_id" value={currentItem.chemical_id} onChange={handleItemChange}>
-                    <option value="">Select Chemical</option>
-                    {chemicals.map(chemical => (
-                      <option key={chemical.id} value={chemical.id}>
-                        {chemical.name}
-                      </option>
-                    ))}
-                  </select>
+              <div className={styles.formGroup}>
+                <label>Chemical</label>
+                <div style={{ position: 'relative' }}>
+                  <input
+                    type="text"
+                    placeholder="Search for chemical..."
+                    value={chemicalSearch}
+                    onChange={(e) => setChemicalSearch(e.target.value)}
+                    onFocus={() => setShowChemicalDropdown(true)}
+                    style={{ width: '100%', padding: '8px 12px', border: '1px solid #ddd', borderRadius: '4px' }}
+                  />
+                  {showChemicalDropdown && filteredChemicals.length > 0 && (
+                    <div style={{
+                      position: 'absolute',
+                      top: '100%',
+                      left: 0,
+                      right: 0,
+                      backgroundColor: 'white',
+                      border: '1px solid #ddd',
+                      borderRadius: '4px',
+                      maxHeight: '200px',
+                      overflowY: 'auto',
+                      zIndex: 1000,
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                    }}>
+                      {filteredChemicals.map(chemical => (
+                        <div
+                          key={chemical.id}
+                          onClick={() => handleChemicalSelect(chemical)}
+                          style={{
+                            padding: '8px 12px',
+                            cursor: 'pointer',
+                            borderBottom: '1px solid #eee',
+                            ':hover': { backgroundColor: '#f5f5f5' }
+                          }}
+                          onMouseEnter={(e) => e.target.style.backgroundColor = '#f5f5f5'}
+                          onMouseLeave={(e) => e.target.style.backgroundColor = 'white'}
+                        >
+                          {chemical.name}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
+              </div>
+              <div className={styles.formRow}>
                 <div className={styles.formGroup}>
                   <label>Quantity</label>
                   <input
@@ -962,8 +1430,6 @@ function PurchaseOrderForm({ chemicals, onSubmit, onCancel }) {
                     step="0.01"
                   />
                 </div>
-              </div>
-              <div className={styles.formRow}>
                 <div className={styles.formGroup}>
                   <label>Unit</label>
                   <select name="unit" value={currentItem.unit} onChange={handleItemChange}>
@@ -980,17 +1446,17 @@ function PurchaseOrderForm({ chemicals, onSubmit, onCancel }) {
                     <option value="vials">Vials</option>
                   </select>
                 </div>
-                <div className={styles.formGroup}>
-                  <label>Unit Price</label>
-                  <input
-                    type="number"
-                    name="unit_price"
-                    value={currentItem.unit_price}
-                    onChange={handleItemChange}
-                    min="0"
-                    step="0.01"
-                  />
-                </div>
+              </div>
+              <div className={styles.formGroup}>
+                <label>Unit Price</label>
+                <input
+                  type="number"
+                  name="unit_price"
+                  value={currentItem.unit_price}
+                  onChange={handleItemChange}
+                  min="0"
+                  step="0.01"
+                />
               </div>
               <button type="button" onClick={addItem} className={styles.addItemBtn}>
                 Add Item
@@ -999,7 +1465,7 @@ function PurchaseOrderForm({ chemicals, onSubmit, onCancel }) {
           </div>
 
           <div className={styles.totalSection}>
-            <h4>Total Amount: ${formData.total_amount.toFixed(2)}</h4>
+            <h4>Total Amount: {formatCurrency(formData.total_amount, formData.currency || 'INR')}</h4>
           </div>
 
           <div className={styles.formActions}>

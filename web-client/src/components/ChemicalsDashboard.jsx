@@ -117,11 +117,15 @@ export default function ChemicalsDashboard() {
         history[chemical.id] = historyData;
       } catch (err) {
         console.error(`Error loading purchase history for chemical ${chemical.id}:`, err);
+        // Provide default values instead of breaking the UI
         history[chemical.id] = {
+          chemical_id: chemical.id,
+          chemical_name: chemical.name,
           total_purchased: 0,
           total_spent: 0,
+          last_purchase_date: null,
           average_unit_price: 0,
-          currency: 'USD'
+          currency: 'INR'
         };
       }
     }

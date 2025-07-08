@@ -131,6 +131,42 @@
   }
 }
 
+.refreshBtn {
+  background: var(--accent-color);
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 0.5rem 1rem;
+  margin-bottom: 1rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
+  
+  &:hover {
+    background: var(--accent-color);
+    opacity: 0.9;
+    transform: translateY(-1px);
+  }
+  
+  &:disabled {
+    background: var(--secondary-text);
+    cursor: not-allowed;
+    transform: none;
+  }
+}
+
+.onlineStatus {
+  color: var(--success-color);
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.offlineStatus {
+  color: var(--secondary-text);
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
 .inviteForm {
   width: 100%;
   max-width: 400px;

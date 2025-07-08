@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { auth } from '../firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 
@@ -11,10 +11,66 @@ export const AuthProvider = ({ children }) => {
   const [userInfo, setUserInfo] = useState(null);
   const [loading, setLoading] = useState(true);
   const [backendAvailable, setBackendAvailable] = useState(true);
+  const heartbeatIntervalRef = useRef(null);
+
+  const sendHeartbeat = async () => {
+    if (!user || !userInfo?.is_approved) {
+      console.log('Heartbeat skipped:', { 
+        user: !!user, 
+        userInfo: !!userInfo, 
+        isApproved: userInfo?.is_approved,
+        userEmail: userInfo?.email 
+      });
+      return;
+    }
+    
+    try {
+      const token = await user.getIdToken();
+      console.log('Sending heartbeat for user:', userInfo.email);
+      
+      const response = await fetch(`${API_BASE}/user/ping`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Heartbeat sent successfully:', data);
+      } else {
+        console.warn('Heartbeat failed with status:', response.status);
+        const errorText = await response.text();
+        console.warn('Heartbeat error:', errorText);
+      }
+    } catch (error) {
+      console.warn('Heartbeat failed:', error);
+    }
+  };
+
+  const startHeartbeat = () => {
+    console.log('Starting heartbeat for user:', userInfo?.email);
+    if (heartbeatIntervalRef.current) {
+      clearInterval(heartbeatIntervalRef.current);
+    }
+    
+    // Send heartbeat every 2 minutes
+    heartbeatIntervalRef.current = setInterval(sendHeartbeat, 2 * 60 * 1000);
+    
+    // Send initial heartbeat immediately
+    sendHeartbeat();
+  };
+
+  const stopHeartbeat = () => {
+    console.log('Stopping heartbeat');
+    if (heartbeatIntervalRef.current) {
+      clearInterval(heartbeatIntervalRef.current);
+      heartbeatIntervalRef.current = null;
+    }
+  };
 
   const fetchUserInfo = async (firebaseUser) => {
     try {
       const token = await firebaseUser.getIdToken();
+      console.log('Fetching user info for:', firebaseUser.email);
       
       // First try to get user status (works for both approved and pending users)
       const statusRes = await fetch(`${API_BASE}/user/status`, {
@@ -23,17 +79,20 @@ export const AuthProvider = ({ children }) => {
       
       if (statusRes.ok) {
         const userData = await statusRes.json();
+        console.log('User status received:', userData);
         setUserInfo(userData);
         setBackendAvailable(true);
         
         // If user is approved, also fetch full dashboard data
         if (userData.is_approved) {
+          console.log('User is approved, fetching dashboard data...');
           try {
             const dashboardRes = await fetch(`${API_BASE}/user/dashboard`, {
               headers: { 'Authorization': `Bearer ${token}` }
             });
             if (dashboardRes.ok) {
               const dashboardData = await dashboardRes.json();
+              console.log('Dashboard data received:', dashboardData);
               // Merge dashboard data with user data
               setUserInfo({ ...userData, ...dashboardData });
             }
@@ -41,6 +100,8 @@ export const AuthProvider = ({ children }) => {
             console.warn('Failed to fetch dashboard data:', dashboardError);
             // Dashboard fetch failed, but we still have basic user info
           }
+        } else {
+          console.log('User is not approved yet');
         }
         
         return userData;
@@ -57,6 +118,46 @@ export const AuthProvider = ({ children }) => {
     return null;
   };
 
+  // Set user online in backend
+  const setUserOnline = async (firebaseUser) => {
+    try {
+      const token = await firebaseUser.getIdToken();
+      await fetch(`${API_BASE}/user/online`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      console.log('User set as online in backend');
+    } catch (err) {
+      console.warn('Failed to set user online:', err);
+    }
+  };
+
+  // Set user offline in backend
+  const setUserOffline = async (firebaseUser) => {
+    try {
+      const token = await firebaseUser.getIdToken();
+      await fetch(`${API_BASE}/user/offline`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      console.log('User set as offline in backend');
+    } catch (err) {
+      console.warn('Failed to set user offline:', err);
+    }
+  };
+
+  // Effect to handle heartbeat and online status when userInfo changes
+  useEffect(() => {
+    if (user && userInfo?.is_approved) {
+      console.log('User is approved, starting heartbeat for:', userInfo.email);
+      setUserOnline(user); // Set online in backend
+      startHeartbeat();
+    } else {
+      console.log('User not approved or logged out, stopping heartbeat');
+      stopHeartbeat();
+    }
+  }, [user, userInfo?.is_approved]);
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       console.log('Auth state changed:', firebaseUser ? 'User logged in' : 'User logged out');
@@ -69,13 +170,25 @@ export const AuthProvider = ({ children }) => {
         localStorage.removeItem('firebase_token');
         setUserInfo(null);
         setBackendAvailable(true);
+        stopHeartbeat();
       }
       setLoading(false);
     });
     return () => unsubscribe();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Cleanup heartbeat on unmount
+  useEffect(() => {
+    return () => {
+      stopHeartbeat();
+    };
   }, []);
 
   const logout = async () => {
+    stopHeartbeat();
+    if (user) {
+      await setUserOffline(user); // Set offline in backend before logout
+    }
     await signOut(auth);
     setUser(null);
     setUserInfo(null);
@@ -88,6 +201,12 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Manual heartbeat trigger for testing
+  const triggerHeartbeat = async () => {
+    console.log('Manual heartbeat trigger called');
+    await sendHeartbeat();
+  };
+
   return (
     <AuthContext.Provider value={{ 
       user, 
@@ -95,7 +214,8 @@ export const AuthProvider = ({ children }) => {
       loading, 
       logout, 
       refreshUserInfo,
-      backendAvailable
+      backendAvailable,
+      triggerHeartbeat // Expose for testing
     }}>
       {children}
     </AuthContext.Provider>

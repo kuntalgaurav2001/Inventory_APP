@@ -8,6 +8,7 @@ import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
 import AdminManagementPage from './pages/AdminManagementPage';
 import ChemicalsDashboard from './components/ChemicalsDashboard';
+import ChemicalDetailPage from './pages/ChemicalDetailPage';
 import AccountTeamDashboard from './components/AccountTeamDashboard';
 import NotificationDashboard from './components/NotificationDashboard';
 import NavBar from './components/NavBar';
@@ -151,6 +152,14 @@ function AppRoutes() {
         }
       />
       <Route
+        path="/chemicals/:id"
+        element={
+          <ProtectedRoute>
+            <ChemicalDetailPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/account"
         element={
           <ProtectedRoute>
@@ -172,14 +181,14 @@ function AppRoutes() {
 
 function App() {
   return (
-    <ThemeProvider>
-      <AuthProvider>
+    <AuthProvider>
+      <ThemeProvider>
         <Router>
           <MobileThemeToggle />
           <AppRoutes />
         </Router>
-      </AuthProvider>
-    </ThemeProvider>
+      </ThemeProvider>
+    </AuthProvider>
   );
 }
 

@@ -9,7 +9,7 @@ class AccountTransactionBase(BaseModel):
     quantity: float
     unit: str
     amount: float
-    currency: str = "USD"
+    currency: str = "INR"
     supplier: Optional[str] = None
     delivery_date: Optional[datetime] = None
     status: str = "pending"
@@ -61,7 +61,7 @@ class PurchaseOrderItemResponse(PurchaseOrderItemBase):
 class PurchaseOrderBase(BaseModel):
     supplier: str
     total_amount: float
-    currency: str = "USD"
+    currency: str = "INR"
     expected_delivery: Optional[datetime] = None
     status: str = "draft"
     notes: Optional[str] = None
@@ -98,7 +98,7 @@ class AccountSummary(BaseModel):
     pending_orders: int
     total_spent_this_month: float
     total_spent_this_year: float
-    currency: str = "USD"
+    currency: str = "INR"
 
 class ChemicalPurchaseHistory(BaseModel):
     chemical_id: int
@@ -107,4 +107,4 @@ class ChemicalPurchaseHistory(BaseModel):
     total_spent: float
     last_purchase_date: Optional[datetime] = None
     average_unit_price: float
-    currency: str = "USD" 
+    currency: str = "INR" 

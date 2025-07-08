@@ -3,7 +3,7 @@ import styles from './AdminManagementPage.module.scss';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
-const TABS = ['Users', 'Lab Staff', 'Product Team', 'Account Team', 'Pending', 'Logs'];
+const TABS = ['Users', 'Lab Staff', 'Product Team', 'Account Team', 'Pending', 'Online Users', 'Logs'];
 
 const API_BASE = 'http://localhost:8000';
 
@@ -18,6 +18,9 @@ const AdminManagementPage = () => {
   const [pendingUsers, setPendingUsers] = useState([]);
   const [pendingLoading, setPendingLoading] = useState(false);
   const [pendingError, setPendingError] = useState(null);
+  const [onlineUsers, setOnlineUsers] = useState([]);
+  const [onlineLoading, setOnlineLoading] = useState(false);
+  const [onlineError, setOnlineError] = useState(null);
   const [logs, setLogs] = useState([]);
   const [logsLoading, setLogsLoading] = useState(false);
   const [logsError, setLogsError] = useState(null);
@@ -77,8 +80,20 @@ const AdminManagementPage = () => {
     if (activeTab === 'Product Team') fetchUsers();
     if (activeTab === 'Account Team') fetchUsers();
     if (activeTab === 'Pending') fetchPendingUsers();
+    if (activeTab === 'Online Users') fetchOnlineUsers();
     if (activeTab === 'Logs') fetchLogs();
     // eslint-disable-next-line
+  }, [activeTab, user, role]);
+
+  // Auto-refresh online users every 30 seconds when on Online Users tab
+  useEffect(() => {
+    if (!user || role !== 'admin' || activeTab !== 'Online Users') return;
+    
+    const interval = setInterval(() => {
+      fetchOnlineUsers();
+    }, 30000); // Refresh every 30 seconds
+    
+    return () => clearInterval(interval);
   }, [activeTab, user, role]);
 
   const fetchUsers = async () => {
@@ -88,6 +103,7 @@ const AdminManagementPage = () => {
       const res = await fetch(`${API_BASE}/admin/users`, { headers: { ...getAuthHeaders() } });
       if (!res.ok) throw new Error('Failed to fetch users');
       const data = await res.json();
+      console.log('All users data:', data);
       setUsers(data);
     } catch (err) {
       setError(err.message);
@@ -108,6 +124,25 @@ const AdminManagementPage = () => {
       setPendingError(err.message);
     } finally {
       setPendingLoading(false);
+    }
+  };
+
+  const fetchOnlineUsers = async () => {
+    setOnlineLoading(true);
+    setOnlineError(null);
+    try {
+      const res = await fetch(`${API_BASE}/admin/online-users?minutes_threshold=5`, { 
+        headers: { ...getAuthHeaders() } 
+      });
+      if (!res.ok) throw new Error('Failed to fetch online users');
+      const data = await res.json();
+      console.log('Online users data:', data);
+      setOnlineUsers(data);
+    } catch (err) {
+      console.error('Error fetching online users:', err);
+      setOnlineError(err.message);
+    } finally {
+      setOnlineLoading(false);
     }
   };
 
@@ -238,6 +273,36 @@ const AdminManagementPage = () => {
   const productTeamUsers = users.filter(user => user.role === 'product' && user.is_approved);
   const accountTeamUsers = users.filter(user => user.role === 'account' && user.is_approved);
 
+  // Helper function to check if user is online (active in last 5 minutes)
+  const isUserOnline = (user) => {
+    if (!user.last_seen) {
+      console.log('User has no last_seen:', user.email);
+      return false;
+    }
+    
+    // Parse the last_seen date (backend sends UTC)
+    const lastSeen = new Date(user.last_seen);
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+    const isOnline = lastSeen > fiveMinutesAgo;
+    
+    console.log('Online check for', user.email, ':', { 
+      lastSeen: lastSeen.toISOString(), 
+      fiveMinutesAgo: fiveMinutesAgo.toISOString(), 
+      isOnline,
+      timeDiff: Math.floor((lastSeen - fiveMinutesAgo) / 1000 / 60) + ' minutes'
+    });
+    
+    return isOnline;
+  };
+
+  // Helper function to get online status display
+  const getOnlineStatus = (user) => {
+    if (isUserOnline(user)) {
+      return <span className={styles.onlineStatus}>🟢 Online</span>;
+    }
+    return <span className={styles.offlineStatus}>⚫ Offline</span>;
+  };
+
   if (loading || roleLoading) {
     return <div className={styles.adminPageContainer}>Loading...</div>;
   }
@@ -264,6 +329,16 @@ const AdminManagementPage = () => {
           <div>
             <h3>Approved Users ({approvedUsers.length} users)</h3>
             <p>Manage approved users with full system access.</p>
+            <button 
+              onClick={() => {
+                fetchUsers();
+                fetchOnlineUsers();
+              }} 
+              className={styles.refreshBtn}
+              disabled={loadingUsers}
+            >
+              {loadingUsers ? 'Refreshing...' : 'Refresh'}
+            </button>
             {loadingUsers && <div>Loading users...</div>}
             {error && <div className={styles.errorMsg}>{error}</div>}
             {!loadingUsers && !error && (
@@ -276,6 +351,7 @@ const AdminManagementPage = () => {
                     <th>Phone</th>
                     <th>Role</th>
                     <th>Status</th>
+                    <th>Online</th>
                     <th>Actions</th>
                   </tr>
                 </thead>
@@ -299,6 +375,7 @@ const AdminManagementPage = () => {
                         </select>
                       </td>
                       <td data-label="Status">{user.is_approved ? 'Approved' : 'Pending'}</td>
+                      <td data-label="Online">{getOnlineStatus(user)}</td>
                       <td data-label="Actions">
                         <button onClick={() => handleDelete(user)} className={styles.actionBtnDanger}>
                           Delete
@@ -333,6 +410,7 @@ const AdminManagementPage = () => {
                         <th>Email</th>
                         <th>Phone</th>
                         <th>Status</th>
+                        <th>Online</th>
                         <th>Actions</th>
                       </tr>
                     </thead>
@@ -344,6 +422,7 @@ const AdminManagementPage = () => {
                           <td data-label="Email">{user.email}</td>
                           <td data-label="Phone">{user.phone || 'Not provided'}</td>
                           <td data-label="Status">{user.is_approved ? 'Approved' : 'Pending'}</td>
+                          <td data-label="Online">{getOnlineStatus(user)}</td>
                           <td data-label="Actions">
                             <button onClick={() => handleDelete(user)} className={styles.actionBtnDanger}>
                               Remove
@@ -380,6 +459,7 @@ const AdminManagementPage = () => {
                         <th>Email</th>
                         <th>Phone</th>
                         <th>Status</th>
+                        <th>Online</th>
                         <th>Actions</th>
                       </tr>
                     </thead>
@@ -391,6 +471,7 @@ const AdminManagementPage = () => {
                           <td data-label="Email">{user.email}</td>
                           <td data-label="Phone">{user.phone || 'Not provided'}</td>
                           <td data-label="Status">{user.is_approved ? 'Approved' : 'Pending'}</td>
+                          <td data-label="Online">{getOnlineStatus(user)}</td>
                           <td data-label="Actions">
                             <button onClick={() => handleDelete(user)} className={styles.actionBtnDanger}>
                               Remove
@@ -427,6 +508,7 @@ const AdminManagementPage = () => {
                         <th>Email</th>
                         <th>Phone</th>
                         <th>Status</th>
+                        <th>Online</th>
                         <th>Actions</th>
                       </tr>
                     </thead>
@@ -438,6 +520,7 @@ const AdminManagementPage = () => {
                           <td data-label="Email">{user.email}</td>
                           <td data-label="Phone">{user.phone || 'Not provided'}</td>
                           <td data-label="Status">{user.is_approved ? 'Approved' : 'Pending'}</td>
+                          <td data-label="Online">{getOnlineStatus(user)}</td>
                           <td data-label="Actions">
                             <button onClick={() => handleDelete(user)} className={styles.actionBtnDanger}>
                               Remove
@@ -505,6 +588,56 @@ const AdminManagementPage = () => {
                             <button onClick={() => handleDelete(user)} className={styles.actionBtnDanger}>
                               Reject
                             </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </>
+            )}
+          </div>
+        )}
+        {activeTab === 'Online Users' && (
+          <div>
+            <h3>Online Users ({onlineUsers.length} users)</h3>
+            <p>Users currently online (active in the last 5 minutes).</p>
+            <button 
+              onClick={fetchOnlineUsers} 
+              className={styles.refreshBtn}
+              disabled={onlineLoading}
+            >
+              {onlineLoading ? 'Refreshing...' : 'Refresh'}
+            </button>
+            {onlineLoading && <div>Loading online users...</div>}
+            {onlineError && <div className={styles.errorMsg}>{onlineError}</div>}
+            {!onlineLoading && !onlineError && (
+              <>
+                {onlineUsers.length === 0 ? (
+                  <div className={styles.emptyState}>
+                    <h4>No Online Users</h4>
+                    <p>No users are currently online.</p>
+                  </div>
+                ) : (
+                  <table className={styles.userTable}>
+                    <thead>
+                      <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Role</th>
+                        <th>Last Seen</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {onlineUsers.map(user => (
+                        <tr key={user.id}>
+                          <td data-label="ID">{user.id}</td>
+                          <td data-label="Name">{user.first_name} {user.last_name || ''}</td>
+                          <td data-label="Email">{user.email}</td>
+                          <td data-label="Role">{user.role.replace('_', ' ').toUpperCase()}</td>
+                          <td data-label="Last Seen">
+                            {user.last_seen ? new Date(user.last_seen).toLocaleString() : 'Never'}
                           </td>
                         </tr>
                       ))}

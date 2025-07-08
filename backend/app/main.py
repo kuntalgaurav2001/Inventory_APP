@@ -56,7 +56,7 @@ app.include_router(chemical_inventory_router, prefix="/chemicals", tags=["Chemic
 app.include_router(formulation_details_router, prefix="/formulations", tags=["Formulation Details"])
 app.include_router(notifications_router, prefix="/notifications", tags=["Notifications"])
 app.include_router(alerts_router, prefix="/alerts", tags=["Alerts"])
-app.include_router(account_transactions_router, prefix="/account", tags=["Account Transactions"])
+app.include_router(account_transactions_router, tags=["Account Transactions"])
 
 @app.get("/")
 def root():

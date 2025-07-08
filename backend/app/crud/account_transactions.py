@@ -5,9 +5,17 @@ from app.schema.account_transactions import AccountTransactionCreate, AccountTra
 from typing import List, Optional
 from datetime import datetime, timedelta
 import uuid
+import logging
+from app.models.chemical_inventory import ChemicalInventory
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Account Transaction CRUD
 def create_account_transaction(db: Session, transaction: AccountTransactionCreate, user_id: str) -> AccountTransaction:
+    logger.info(f"Creating new transaction: {transaction.transaction_type} - {transaction.quantity} {transaction.unit} - ₹{transaction.amount} - Status: {transaction.status}")
+    
     db_transaction = AccountTransaction(
         chemical_id=transaction.chemical_id,
         transaction_type=transaction.transaction_type,
@@ -24,6 +32,8 @@ def create_account_transaction(db: Session, transaction: AccountTransactionCreat
     db.add(db_transaction)
     db.commit()
     db.refresh(db_transaction)
+    
+    logger.info(f"Transaction created successfully with ID: {db_transaction.id}")
     return db_transaction
 
 def get_account_transactions(db: Session, skip: int = 0, limit: int = 100, chemical_id: Optional[int] = None) -> List[AccountTransaction]:
@@ -36,13 +46,24 @@ def get_account_transaction(db: Session, transaction_id: int) -> Optional[Accoun
     return db.query(AccountTransaction).filter(AccountTransaction.id == transaction_id).first()
 
 def update_account_transaction(db: Session, transaction_id: int, transaction_update: AccountTransactionUpdate) -> Optional[AccountTransaction]:
+    logger.info(f"Updating transaction {transaction_id} with data: {transaction_update.dict(exclude_unset=True)}")
+    
     db_transaction = get_account_transaction(db, transaction_id)
     if db_transaction:
+        old_status = db_transaction.status
         update_data = transaction_update.dict(exclude_unset=True)
         for field, value in update_data.items():
             setattr(db_transaction, field, value)
         db.commit()
         db.refresh(db_transaction)
+        
+        if 'status' in update_data:
+            logger.info(f"Transaction {transaction_id} status changed from '{old_status}' to '{db_transaction.status}'")
+        else:
+            logger.info(f"Transaction {transaction_id} updated successfully")
+    else:
+        logger.warning(f"Transaction {transaction_id} not found for update")
+    
     return db_transaction
 
 def delete_account_transaction(db: Session, transaction_id: int) -> bool:
@@ -123,9 +144,14 @@ def delete_purchase_order(db: Session, order_id: int) -> bool:
 # Summary and Analytics
 def get_account_summary(db: Session) -> dict:
     """Get account summary statistics"""
-    # Total purchases
+    logger.info("Calculating account summary statistics...")
+    
+    # Total purchases (only completed transactions)
     total_purchases = db.query(func.sum(AccountTransaction.amount)).filter(
-        AccountTransaction.transaction_type == 'purchase'
+        and_(
+            AccountTransaction.transaction_type == 'purchase',
+            AccountTransaction.status == 'completed'
+        )
     ).scalar() or 0
     
     # Total transactions
@@ -136,50 +162,65 @@ def get_account_summary(db: Session) -> dict:
         PurchaseOrder.status.in_(['draft', 'submitted'])
     ).scalar() or 0
     
-    # This month's spending
+    # This month's spending (only completed transactions)
     start_of_month = datetime.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
     total_spent_this_month = db.query(func.sum(AccountTransaction.amount)).filter(
         and_(
             AccountTransaction.transaction_type == 'purchase',
+            AccountTransaction.status == 'completed',
             AccountTransaction.created_at >= start_of_month
         )
     ).scalar() or 0
     
-    # This year's spending
+    # This year's spending (only completed transactions)
     start_of_year = datetime.now().replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
     total_spent_this_year = db.query(func.sum(AccountTransaction.amount)).filter(
         and_(
             AccountTransaction.transaction_type == 'purchase',
+            AccountTransaction.status == 'completed',
             AccountTransaction.created_at >= start_of_year
         )
     ).scalar() or 0
     
-    return {
+    summary = {
         "total_purchases": float(total_purchases),
         "total_transactions": total_transactions,
         "pending_orders": pending_orders,
         "total_spent_this_month": float(total_spent_this_month),
         "total_spent_this_year": float(total_spent_this_year),
-        "currency": "USD"
+        "currency": "INR"
     }
+    
+    logger.info(f"Account summary calculated: Total purchases: ₹{total_purchases}, Total transactions: {total_transactions}, Pending orders: {pending_orders}, This month: ₹{total_spent_this_month}, This year: ₹{total_spent_this_year}")
+    
+    return summary
 
 def get_chemical_purchase_history(db: Session, chemical_id: int) -> dict:
     """Get purchase history for a specific chemical"""
+    logger.info(f"Fetching purchase history for chemical ID: {chemical_id}")
+    
+    # First, get the chemical name
+    chemical = db.query(ChemicalInventory).filter(ChemicalInventory.id == chemical_id).first()
+    chemical_name = chemical.name if chemical else "Unknown Chemical"
+    
     transactions = db.query(AccountTransaction).filter(
         and_(
             AccountTransaction.chemical_id == chemical_id,
-            AccountTransaction.transaction_type == 'purchase'
+            AccountTransaction.transaction_type == 'purchase',
+            AccountTransaction.status == 'completed'
         )
     ).all()
     
     if not transactions:
+        logger.info(f"No completed purchase transactions found for chemical ID: {chemical_id}")
         return {
             "chemical_id": chemical_id,
+            "chemical_name": chemical_name,
             "total_purchased": 0,
             "total_spent": 0,
             "last_purchase_date": None,
             "average_unit_price": 0,
-            "currency": "USD"
+            "currency": "INR"
         }
     
     total_purchased = sum(t.quantity for t in transactions)
@@ -187,13 +228,16 @@ def get_chemical_purchase_history(db: Session, chemical_id: int) -> dict:
     last_purchase_date = max(t.created_at for t in transactions)
     average_unit_price = total_spent / total_purchased if total_purchased > 0 else 0
     
+    logger.info(f"Chemical {chemical_id} purchase history: {len(transactions)} transactions, Total purchased: {total_purchased}, Total spent: ₹{total_spent}, Average unit price: ₹{average_unit_price}")
+    
     return {
         "chemical_id": chemical_id,
+        "chemical_name": chemical_name,
         "total_purchased": float(total_purchased),
         "total_spent": float(total_spent),
         "last_purchase_date": last_purchase_date,
         "average_unit_price": float(average_unit_price),
-        "currency": "USD"
+        "currency": "INR"
     }
 
 def get_recent_transactions(db: Session, limit: int = 10) -> List[AccountTransaction]:

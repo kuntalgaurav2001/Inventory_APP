@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { fetchChemicalPurchaseHistory } from '../api/accountTransactions';
 import styles from './ChemicalDetail.module.scss';
 
 export default function ChemicalDetail({
@@ -20,6 +21,39 @@ export default function ChemicalDetail({
 }) {
   const [newNote, setNewNote] = useState('');
   const [newFormulationNote, setNewFormulationNote] = useState({});
+  const [purchaseHistory, setPurchaseHistory] = useState(null);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+
+  useEffect(() => {
+    loadPurchaseHistory();
+  }, [chemical.id]);
+
+  const loadPurchaseHistory = async () => {
+    try {
+      setLoadingHistory(true);
+      const history = await fetchChemicalPurchaseHistory(chemical.id);
+      setPurchaseHistory(history);
+    } catch (err) {
+      console.error('Error loading purchase history:', err);
+      setPurchaseHistory({
+        chemical_id: chemical.id,
+        total_purchased: 0,
+        total_spent: 0,
+        last_purchase_date: null,
+        average_unit_price: 0,
+        currency: "INR"
+      });
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
+
+  const formatCurrency = (amount, currency = 'INR') => {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: currency
+    }).format(amount);
+  };
 
   const handleAddNote = (e) => {
     e.preventDefault();
@@ -117,6 +151,42 @@ export default function ChemicalDetail({
               </button>
             </form>
           </div>
+        </div>
+
+        {/* Purchase History Section */}
+        <div className={styles.purchaseHistorySection}>
+          <h4>Purchase History</h4>
+          {loadingHistory ? (
+            <div className={styles.loadingHistory}>Loading purchase history...</div>
+          ) : purchaseHistory ? (
+            <div className={styles.purchaseHistoryGrid}>
+              <div className={styles.purchaseHistoryItem}>
+                <label>Total Purchased:</label>
+                <span>{purchaseHistory.total_purchased} {chemical.unit}</span>
+              </div>
+              <div className={styles.purchaseHistoryItem}>
+                <label>Total Spent:</label>
+                <span>{formatCurrency(purchaseHistory.total_spent, purchaseHistory.currency)}</span>
+              </div>
+              <div className={styles.purchaseHistoryItem}>
+                <label>Average Unit Price:</label>
+                <span>{formatCurrency(purchaseHistory.average_unit_price, purchaseHistory.currency)}/{chemical.unit}</span>
+              </div>
+              <div className={styles.purchaseHistoryItem}>
+                <label>Last Purchase Date:</label>
+                <span>
+                  {purchaseHistory.last_purchase_date 
+                    ? new Date(purchaseHistory.last_purchase_date).toLocaleDateString()
+                    : 'No purchases yet'
+                  }
+                </span>
+              </div>
+            </div>
+          ) : (
+            <div className={styles.noPurchaseHistory}>
+              <p>No purchase history available for this chemical.</p>
+            </div>
+          )}
         </div>
 
         <div className={styles.formulationsSection}>

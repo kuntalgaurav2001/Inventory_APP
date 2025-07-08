@@ -27,6 +27,7 @@ class UserResponse(UserBase):
     is_approved: bool
     created_at: datetime
     updated_at: Optional[datetime] = None
+    last_seen: Optional[datetime] = None
 
     class Config:
         from_attributes = True
