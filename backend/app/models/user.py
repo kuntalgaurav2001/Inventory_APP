@@ -24,6 +24,7 @@ class User(Base):
     is_approved = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    last_seen = Column(DateTime(timezone=True), nullable=True)  # Track when user was last active
     
     # Relationships
     activity_logs = relationship("ActivityLog", back_populates="user")

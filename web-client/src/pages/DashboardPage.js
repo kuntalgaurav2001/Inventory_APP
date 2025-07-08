@@ -2,12 +2,12 @@ import React, { useEffect, useState } from 'react';
 import styles from './DashboardPage.module.scss';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { Clock, CheckCircle, AlertTriangle, Hand, FlaskConical, Users, DollarSign, Shield } from 'lucide-react';
+import { Clock, CheckCircle, AlertTriangle, Hand, FlaskConical, Users, DollarSign, Shield, Heart } from 'lucide-react';
 
 const API_BASE = 'http://localhost:8000';
 
 const DashboardPage = () => {
-  const { user, loading, userInfo, backendAvailable } = useAuth();
+  const { user, loading, userInfo, backendAvailable, triggerHeartbeat } = useAuth();
   const navigate = useNavigate();
   const [pending, setPending] = useState(false);
   const [fetching, setFetching] = useState(true);
@@ -28,6 +28,11 @@ const DashboardPage = () => {
       setFetching(false);
     }
   }, [userInfo, loading, user]);
+
+  const handleTestHeartbeat = async () => {
+    console.log('Testing heartbeat manually...');
+    await triggerHeartbeat();
+  };
 
   if (loading || fetching) return <div className={styles.dashboardContainer}>Loading...</div>;
   if (!user) return null;
@@ -189,6 +194,7 @@ const DashboardPage = () => {
             </button>
           )}
         </div>
+        
         <div className={styles.permissionsBox}>
           <h4>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>

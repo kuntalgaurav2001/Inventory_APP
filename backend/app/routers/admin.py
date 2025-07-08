@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.crud.user import (
     get_all_users, get_pending_users, update_user, delete_user,
-    get_user_by_id, get_users_by_role, get_user_by_email
+    get_user_by_id, get_users_by_role, get_user_by_email, get_online_users
 )
 from app.crud.activity_log import (
     get_activity_logs, update_activity_log_note, get_activity_log_by_id, get_activity_logs_with_user_info
@@ -212,4 +212,14 @@ async def update_log_note(
         f"Updated note on activity log: {log_id}"
     )
     
-    return {"message": "Note updated successfully", "log": updated_log} 
+    return {"message": "Note updated successfully", "log": updated_log}
+
+@router.get("/online-users", response_model=List[UserResponse])
+async def get_online_users_admin(
+    minutes_threshold: int = Query(5, ge=1, le=60, description="Minutes threshold for online status"),
+    db: Session = Depends(get_db),
+    admin_user = Depends(get_admin_user)
+):
+    """Get currently online users (Admin only)"""
+    online_users = get_online_users(db, minutes_threshold)
+    return online_users 

@@ -12,11 +12,11 @@ class AccountTransaction(Base):
     quantity = Column(Float, nullable=False)
     unit = Column(String, nullable=False)
     amount = Column(Float, nullable=False)  # Cost in currency
-    currency = Column(String, default="USD")
+    currency = Column(String, default="INR")
     supplier = Column(String, nullable=True)
     purchase_date = Column(DateTime(timezone=True), server_default=func.now())
     delivery_date = Column(DateTime(timezone=True), nullable=True)
-    status = Column(String, default="pending")  # 'pending', 'ordered', 'delivered', 'cancelled'
+    status = Column(String, default="pending")  # 'pending', 'completed', 'cancelled'
     notes = Column(Text, nullable=True)
     created_by = Column(String, ForeignKey("users.uid"), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -33,7 +33,7 @@ class PurchaseOrder(Base):
     order_number = Column(String, unique=True, nullable=False)
     supplier = Column(String, nullable=False)
     total_amount = Column(Float, nullable=False)
-    currency = Column(String, default="USD")
+    currency = Column(String, default="INR")
     order_date = Column(DateTime(timezone=True), server_default=func.now())
     expected_delivery = Column(DateTime(timezone=True), nullable=True)
     status = Column(String, default="draft")  # 'draft', 'submitted', 'approved', 'ordered', 'delivered', 'cancelled'
