@@ -90,6 +90,7 @@ const LoginPage = () => {
       return;
     }
     
+    
     setError(null);
     setOtpLoading(true);
     setDebugInfo('Setting up OTP...');

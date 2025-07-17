@@ -44,7 +44,15 @@ const NotificationDashboard = () => {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filters, setFilters] = useState({});
+  const [filters, setFilters] = useState({
+    category: '',
+    priority: '',
+    status: '',
+    severity: '',
+    dateFrom: '',
+    dateTo: '',
+    creator: ''
+  });
   const [categories, setCategories] = useState([]);
   const [priorities, setPriorities] = useState([]);
   const [statuses, setStatuses] = useState([]);
@@ -67,12 +75,12 @@ const NotificationDashboard = () => {
   useEffect(() => {
     loadNotifications();
     loadDropdownData();
-  }, [filters]);
+  }, []);
 
   const loadNotifications = async () => {
     setLoading(true);
     try {
-      const data = await fetchNotifications(filters);
+      const data = await fetchNotifications();
       setNotifications(data);
     } catch (error) {
       console.error('Error loading notifications:', error);
@@ -186,11 +194,82 @@ const NotificationDashboard = () => {
     return visibleNotifications.filter(n => n.recipients && n.recipients.includes(activeTab));
   };
 
-  const filteredNotifications = getTabFilteredNotifications().filter(notification =>
-    notification.message.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    notification.type.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (notification.creator_name && notification.creator_name.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  // Filter notifications based on search term and filters
+  const getFilteredNotifications = () => {
+    let filtered = getTabFilteredNotifications();
+
+    // Search by message, type, or creator name
+    if (searchTerm.trim()) {
+      const searchLower = searchTerm.toLowerCase();
+      filtered = filtered.filter(notification => {
+        // Search in message
+        if (notification.message && notification.message.toLowerCase().includes(searchLower)) {
+          return true;
+        }
+        // Search in type
+        if (notification.type && notification.type.toLowerCase().includes(searchLower)) {
+          return true;
+        }
+        // Search in creator name
+        if (notification.creator_name && notification.creator_name.toLowerCase().includes(searchLower)) {
+          return true;
+        }
+        // Search in category
+        if (notification.category && notification.category.toLowerCase().includes(searchLower)) {
+          return true;
+        }
+        return false;
+      });
+    }
+
+    // Filter by category
+    if (filters.category) {
+      filtered = filtered.filter(notification => notification.category === filters.category);
+    }
+
+    // Filter by priority
+    if (filters.priority) {
+      filtered = filtered.filter(notification => notification.priority === filters.priority);
+    }
+
+    // Filter by status
+    if (filters.status) {
+      filtered = filtered.filter(notification => notification.status === filters.status);
+    }
+
+    // Filter by severity
+    if (filters.severity) {
+      filtered = filtered.filter(notification => notification.severity === filters.severity);
+    }
+
+    // Filter by date range
+    if (filters.dateFrom) {
+      const fromDate = new Date(filters.dateFrom);
+      filtered = filtered.filter(notification => {
+        const notificationDate = new Date(notification.created_at || notification.timestamp || notification.date);
+        return notificationDate >= fromDate;
+      });
+    }
+    if (filters.dateTo) {
+      const toDate = new Date(filters.dateTo);
+      toDate.setHours(23, 59, 59, 999);
+      filtered = filtered.filter(notification => {
+        const notificationDate = new Date(notification.created_at || notification.timestamp || notification.date);
+        return notificationDate <= toDate;
+      });
+    }
+
+    // Filter by creator
+    if (filters.creator.trim()) {
+      filtered = filtered.filter(notification => 
+        notification.creator_name && notification.creator_name.toLowerCase().includes(filters.creator.toLowerCase())
+      );
+    }
+
+    return filtered;
+  };
+
+  const filteredNotifications = getFilteredNotifications();
 
   const getPriorityColor = (priority) => {
     switch (priority) {
@@ -239,69 +318,144 @@ const NotificationDashboard = () => {
         </div>
       </div>
 
-      {/* Filters and Search */}
-      <div className={styles.controls}>
-        <div className={styles.searchSection}>
-          <div className={styles.searchBox}>
-            <Search size={16} />
+      {/* Search and Filter Section */}
+      <div className={styles.searchFilterSection}>
+        <div className={styles.searchBar}>
+          <div className={styles.searchInput}>
+            <Search size={16} className={styles.searchIcon} />
             <input
               type="text"
-              placeholder="Search notifications..."
+              placeholder="Search by message, type, category, or creator..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
+              className={styles.searchField}
             />
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm('')}
+                className={styles.clearSearch}
+              >
+                <X size={14} />
+              </button>
+            )}
           </div>
-          <button 
-            className={styles.filterButton}
+          <button
             onClick={() => setShowFilters(!showFilters)}
+            className={`${styles.filterToggle} ${showFilters ? styles.active : ''}`}
           >
             <Filter size={16} />
             Filters
+            {Object.values(filters).some(value => value !== '' && value !== false) && (
+              <span className={styles.filterBadge}>•</span>
+            )}
           </button>
         </div>
 
         {showFilters && (
-          <div className={styles.filtersPanel}>
-            <div className={styles.filterRow}>
-              <select
-                value={filters.category || ''}
-                onChange={(e) => setFilters(prev => ({ ...prev, category: e.target.value || undefined }))}
-              >
-                <option value="">All Categories</option>
-                {categories.map(cat => (
-                  <option key={cat.value} value={cat.value}>{cat.label}</option>
-                ))}
-              </select>
+          <div className={styles.filterPanel}>
+            <div className={styles.filterGrid}>
+              <div className={styles.filterGroup}>
+                <label>Category</label>
+                <select
+                  value={filters.category}
+                  onChange={(e) => setFilters(prev => ({ ...prev, category: e.target.value }))}
+                  className={styles.selectInput}
+                >
+                  <option value="">All Categories</option>
+                  {categories.map(cat => (
+                    <option key={cat.value} value={cat.value}>{cat.label}</option>
+                  ))}
+                </select>
+              </div>
 
-              <select
-                value={filters.priority || ''}
-                onChange={(e) => setFilters(prev => ({ ...prev, priority: e.target.value || undefined }))}
-              >
-                <option value="">All Priorities</option>
-                {priorities.map(pri => (
-                  <option key={pri.value} value={pri.value}>{pri.label}</option>
-                ))}
-              </select>
+              <div className={styles.filterGroup}>
+                <label>Priority</label>
+                <select
+                  value={filters.priority}
+                  onChange={(e) => setFilters(prev => ({ ...prev, priority: e.target.value }))}
+                  className={styles.selectInput}
+                >
+                  <option value="">All Priorities</option>
+                  {priorities.map(pri => (
+                    <option key={pri.value} value={pri.value}>{pri.label}</option>
+                  ))}
+                </select>
+              </div>
 
-              <select
-                value={filters.status || ''}
-                onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value || undefined }))}
-              >
-                <option value="">All Statuses</option>
-                {statuses.map(status => (
-                  <option key={status.value} value={status.value}>{status.label}</option>
-                ))}
-              </select>
+              <div className={styles.filterGroup}>
+                <label>Status</label>
+                <select
+                  value={filters.status}
+                  onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
+                  className={styles.selectInput}
+                >
+                  <option value="">All Statuses</option>
+                  {statuses.map(status => (
+                    <option key={status.value} value={status.value}>{status.label}</option>
+                  ))}
+                </select>
+              </div>
 
-              <select
-                value={filters.severity || ''}
-                onChange={(e) => setFilters(prev => ({ ...prev, severity: e.target.value || undefined }))}
+              <div className={styles.filterGroup}>
+                <label>Severity</label>
+                <select
+                  value={filters.severity}
+                  onChange={(e) => setFilters(prev => ({ ...prev, severity: e.target.value }))}
+                  className={styles.selectInput}
+                >
+                  <option value="">All Severities</option>
+                  <option value="info">Info</option>
+                  <option value="warning">Warning</option>
+                  <option value="critical">Critical</option>
+                </select>
+              </div>
+
+              <div className={styles.filterGroup}>
+                <label>Date Range</label>
+                <div className={styles.dateInputs}>
+                  <input
+                    type="date"
+                    value={filters.dateFrom}
+                    onChange={(e) => setFilters(prev => ({ ...prev, dateFrom: e.target.value }))}
+                    className={styles.dateInput}
+                  />
+                  <span>-</span>
+                  <input
+                    type="date"
+                    value={filters.dateTo}
+                    onChange={(e) => setFilters(prev => ({ ...prev, dateTo: e.target.value }))}
+                    className={styles.dateInput}
+                  />
+                </div>
+              </div>
+
+              <div className={styles.filterGroup}>
+                <label>Creator</label>
+                <input
+                  type="text"
+                  placeholder="Search by creator name..."
+                  value={filters.creator}
+                  onChange={(e) => setFilters(prev => ({ ...prev, creator: e.target.value }))}
+                  className={styles.textInput}
+                />
+              </div>
+            </div>
+
+            <div className={styles.filterActions}>
+              <button
+                onClick={() => setFilters({
+                  category: '',
+                  priority: '',
+                  status: '',
+                  severity: '',
+                  dateFrom: '',
+                  dateTo: '',
+                  creator: ''
+                })}
+                className={styles.clearFilters}
               >
-                <option value="">All Severities</option>
-                <option value="critical">Critical</option>
-                <option value="warning">Warning</option>
-                <option value="info">Info</option>
-              </select>
+                Clear All Filters
+              </button>
             </div>
           </div>
         )}
