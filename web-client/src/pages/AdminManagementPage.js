@@ -53,6 +53,7 @@ const AdminManagementPage = () => {
         const res = await fetch(`${API_BASE}/user/me`, { headers: { ...getAuthHeaders() } });
         if (!res.ok) throw new Error('Failed to fetch user info');
         const data = await res.json();
+        
         setRole(data.role);
         if (data.role !== 'admin') {
           setUnauthorized(true);

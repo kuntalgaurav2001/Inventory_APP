@@ -20,7 +20,7 @@ The OTP system uses:
 2. Get your credentials:
    - Account SID
    - Auth Token
-   - Phone number (for sending SMS)
+   - Phone number (for sending SMS) 
 
 #### Environment Variables:
 ```bash
