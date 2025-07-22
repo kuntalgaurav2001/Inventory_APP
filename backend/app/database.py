@@ -20,7 +20,6 @@ engine = create_engine(
     pool_pre_ping=True,
     echo=True  # Set to False in production
 )
-
 # Session for DB interaction
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
