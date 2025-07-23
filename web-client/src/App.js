@@ -83,7 +83,6 @@ function MobileThemeToggle() {
     </button>
   );
 }
-
 // Protected Route Component
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
