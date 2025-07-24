@@ -140,6 +140,7 @@ export function AuthProvider({ children }) {
     }
   };
 
+  
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       console.log('Auth state changed:', firebaseUser ? 'User logged in' : 'User logged out');
