@@ -44,6 +44,7 @@ def add_last_seen_column():
             SET last_seen = updated_at 
             WHERE last_seen IS NULL
         """))
+
         
         db.commit()
         print("✅ Updated existing users with current timestamp as last_seen")
