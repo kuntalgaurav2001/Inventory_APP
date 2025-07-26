@@ -14,6 +14,7 @@ class ChemicalInventoryBase(BaseModel):
     supplier: Optional[str] = None
     location: Optional[str] = None
 
+
 # Create schema
 class ChemicalInventoryCreate(ChemicalInventoryBase):
     pass
