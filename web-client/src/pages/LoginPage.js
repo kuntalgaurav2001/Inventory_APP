@@ -3,7 +3,7 @@ import styles from './LoginPage.module.scss';
 import { useTheme } from '../context/ThemeContext';
 import { Moon, Sun, Mail, Smartphone } from 'lucide-react';
 
-const API_BASE = 'http://localhost:8000';
+const API_BASE = 'http://localhost:8002';
 
 const LoginPage = () => {
   const [activeTab, setActiveTab] = useState('email'); // 'email' or 'otp'

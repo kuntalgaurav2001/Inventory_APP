@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 
 const TABS = ['Users', 'Lab Staff', 'Product Team', 'Account Team', 'Pending', 'Online Users', 'Logs'];
 
-const API_BASE = 'http://localhost:8000';
+const API_BASE = 'http://localhost:8002';
 
 const AdminManagementPage = () => {
   const { user, loading } = useAuth();

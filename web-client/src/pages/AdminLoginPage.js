@@ -36,7 +36,7 @@ const LoginPage = () => {
   const testBackendConnection = async () => {
     setDebugInfo('Testing backend connection...');
     try {
-      const response = await fetch('http://localhost:8000/health');
+      const response = await fetch('http://localhost:8002/health');
       const data = await response.json();
       console.log('Backend health check:', data);
       setDebugInfo(`Backend connection successful: ${data.status}`);

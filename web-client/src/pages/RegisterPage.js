@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
 import { Moon, Sun } from 'lucide-react';
 
-const API_BASE = 'http://localhost:8000';
+const API_BASE = 'http://localhost:8002';
 
 const RegisterPage = () => {
   const [firstName, setFirstName] = useState('');
