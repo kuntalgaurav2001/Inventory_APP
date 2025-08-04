@@ -718,6 +718,7 @@ export const deleteFormulation = async (id) => {
   return response.json();
 };
 
+
 // User ping for online status
 export const pingUser = async () => {
   const headers = await getAuthHeaders();
