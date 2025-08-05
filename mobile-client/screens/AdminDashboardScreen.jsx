@@ -4,7 +4,7 @@ import { Ionicons, MaterialIcons, MaterialCommunityIcons, FontAwesome5 } from '@
 import { useAuth } from '../context/AuthContext';
 
 const TABS = ['Users', 'Lab Staff', 'Product Team', 'Account Team', 'Pending', 'Online Users', 'Logs'];
-const API_BASE = 'http://192.168.1.10:8000';
+const API_BASE = 'http://192.168.1.2:8000';
 
 export default function AdminDashboardScreen() {
   const { user, userInfo, logout, firebaseToken } = useAuth();

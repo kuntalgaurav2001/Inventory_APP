@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_BASE_URL, API_ENDPOINTS, STORAGE_KEYS } from '../constants';
+import { auth } from '../../firebase';
 
 class ApiService {
   constructor() {
@@ -10,7 +11,13 @@ class ApiService {
 
   async loadToken() {
     try {
-      this.token = await AsyncStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
+      // Get Firebase ID token from current user
+      const currentUser = auth.currentUser;
+      if (currentUser) {
+        this.token = await currentUser.getIdToken();
+      } else {
+        this.token = await AsyncStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
+      }
     } catch (error) {
       console.error('Error loading token:', error);
     }
@@ -34,13 +41,22 @@ class ApiService {
     }
   }
 
-  getHeaders() {
+  async getHeaders() {
     const headers = {
       'Content-Type': 'application/json',
     };
 
-    if (this.token) {
-      headers['Authorization'] = `Bearer ${this.token}`;
+    // Get fresh Firebase ID token
+    try {
+      const currentUser = auth.currentUser;
+      if (currentUser) {
+        const token = await currentUser.getIdToken();
+        headers['Authorization'] = `Bearer ${token}`;
+      } else if (this.token) {
+        headers['Authorization'] = `Bearer ${this.token}`;
+      }
+    } catch (error) {
+      console.error('Error getting Firebase token:', error);
     }
 
     return headers;
@@ -49,9 +65,10 @@ class ApiService {
   async request(endpoint, options = {}) {
     try {
       const url = `${this.baseURL}${endpoint}`;
+      const headers = await this.getHeaders();
       const response = await fetch(url, {
         ...options,
-        headers: this.getHeaders(),
+        headers,
       });
 
       const data = await response.json();

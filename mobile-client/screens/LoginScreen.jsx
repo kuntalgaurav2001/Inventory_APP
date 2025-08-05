@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Image, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 
-const API_BASE = 'http://192.168.1.10:8000';
+const API_BASE = 'http://192.168.1.2:8000';
 
 export default function LoginScreen({ navigation }) {
   const { loginWithEmail, loading } = useAuth();

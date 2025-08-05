@@ -131,6 +131,7 @@ export default function AccountTeamDashboard() {
         type: 'purchase_transaction',
         severity: 'info',
         message: `New transaction created: ${transactionData.quantity} ${transactionData.unit} of ${chemicalName} purchased for ${formatCurrency(transactionData.amount, transactionData.currency || 'INR')}`,
+        category: 'general',
         chemical_id: transactionData.chemical_id,
         recipients: ['admin', 'product']
       });
@@ -156,6 +157,7 @@ export default function AccountTeamDashboard() {
         type: 'purchase_order',
         severity: 'info',
         message: `New purchase order created: ${purchaseOrderData.items.length} items for $${purchaseOrderData.total_amount}`,
+        category: 'general',
         recipients: ['admin', 'product']
       });
       
@@ -181,6 +183,7 @@ export default function AccountTeamDashboard() {
         type: 'transaction_approved',
         severity: 'success',
         message: `Transaction ${transactionId} has been approved`,
+        category: 'general',
         recipients: ['account']
       });
       
@@ -205,6 +208,7 @@ export default function AccountTeamDashboard() {
         type: 'transaction_rejected',
         severity: 'warning',
         message: `Transaction ${transactionId} has been rejected`,
+        category: 'general',
         recipients: ['account']
       });
       

@@ -2,6 +2,8 @@ import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apiService } from '../services/api';
 import { STORAGE_KEYS } from '../constants';
+import { auth } from '../../firebase';
+import { onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from 'firebase/auth';
 
 // Initial State
 const initialState = {
@@ -66,29 +68,37 @@ const AuthContext = createContext(undefined);
 export const AuthProvider = ({ children }) => {
   const [state, dispatch] = useReducer(authReducer, initialState);
 
-  // Check for existing token on app start
+  // Listen for Firebase auth state changes
   useEffect(() => {
-    const initializeAuth = async () => {
-      try {
-        const token = await AsyncStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
-        const userData = await AsyncStorage.getItem(STORAGE_KEYS.USER_DATA);
-
-        if (token && userData) {
-          const user = JSON.parse(userData);
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        try {
+          // Get Firebase ID token
+          const token = await firebaseUser.getIdToken();
+          
+          // Save token to AsyncStorage
+          await AsyncStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, token);
+          
+          // Get user info from backend
+          const userInfo = await apiService.getCurrentUser();
+          
           dispatch({
             type: 'AUTH_SUCCESS',
-            payload: { user, token },
+            payload: { user: userInfo, token },
           });
-        } else {
+        } catch (error) {
+          console.error('Error getting user info:', error);
           dispatch({ type: 'AUTH_LOGOUT' });
         }
-      } catch (error) {
-        console.error('Error initializing auth:', error);
+      } else {
+        // User is signed out
+        await AsyncStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
+        await AsyncStorage.removeItem(STORAGE_KEYS.USER_DATA);
         dispatch({ type: 'AUTH_LOGOUT' });
       }
-    };
+    });
 
-    initializeAuth();
+    return () => unsubscribe();
   }, []);
 
   // Save user data to storage when user changes
@@ -110,19 +120,27 @@ export const AuthProvider = ({ children }) => {
   const login = async (credentials) => {
     try {
       dispatch({ type: 'AUTH_START' });
-      const response = await apiService.login(credentials);
-
-      if (response.success && response.data) {
-        dispatch({
-          type: 'AUTH_SUCCESS',
-          payload: {
-            user: response.data.user,
-            token: response.data.access_token,
-          },
-        });
-      } else {
-        throw new Error(response.message || 'Login failed');
-      }
+      
+      // Sign in with Firebase
+      const userCredential = await signInWithEmailAndPassword(auth, credentials.email, credentials.password);
+      const firebaseUser = userCredential.user;
+      
+      // Get Firebase ID token
+      const token = await firebaseUser.getIdToken();
+      
+      // Save token to AsyncStorage
+      await AsyncStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, token);
+      
+      // Get user info from backend
+      const userInfo = await apiService.getCurrentUser();
+      
+      dispatch({
+        type: 'AUTH_SUCCESS',
+        payload: {
+          user: userInfo,
+          token: token,
+        },
+      });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Login failed';
       dispatch({ type: 'AUTH_FAILURE', payload: errorMessage });
@@ -134,7 +152,16 @@ export const AuthProvider = ({ children }) => {
   const register = async (userData) => {
     try {
       dispatch({ type: 'AUTH_START' });
-      const response = await apiService.register(userData);
+      
+      // Create user with Firebase
+      const userCredential = await createUserWithEmailAndPassword(auth, userData.email, userData.password);
+      const firebaseUser = userCredential.user;
+      
+      // Register user with backend
+      const response = await apiService.register({
+        ...userData,
+        uid: firebaseUser.uid
+      });
 
       if (response.success) {
         // Registration successful, but user needs to login
@@ -190,8 +217,13 @@ export const AuthProvider = ({ children }) => {
   // Logout function
   const logout = async () => {
     try {
-      await apiService.logout();
+      // Sign out from Firebase
+      await auth.signOut();
+      
+      // Clear AsyncStorage
+      await AsyncStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
       await AsyncStorage.removeItem(STORAGE_KEYS.USER_DATA);
+      
       dispatch({ type: 'AUTH_LOGOUT' });
     } catch (error) {
       console.error('Error during logout:', error);

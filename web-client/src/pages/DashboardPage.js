@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { Clock, CheckCircle, AlertTriangle, Hand, FlaskConical, Users, DollarSign, Shield, Heart } from 'lucide-react';
 
-const API_BASE = 'http://localhost:8002';
+const API_BASE = 'http://localhost:8000';
 
 const DashboardPage = () => {
   const { user, loading, userInfo, backendAvailable, triggerHeartbeat } = useAuth();

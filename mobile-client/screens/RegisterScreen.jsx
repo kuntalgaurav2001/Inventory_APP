@@ -3,7 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, Image, StyleSheet, ScrollView,
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../firebase';
 
-const API_BASE = 'http://192.168.1.10:8000';
+const API_BASE = 'http://192.168.1.2:8000';
 
 export default function RegisterScreen({ navigation }) {
   const [firstName, setFirstName] = useState('');
