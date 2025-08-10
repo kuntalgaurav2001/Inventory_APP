@@ -235,3 +235,5 @@ def register_user(user: UserCreate, db: Session = Depends(get_db)):
             "is_approved": db_user.is_approved
         }
     }
+
+
