@@ -236,4 +236,3 @@ def register_user(user: UserCreate, db: Session = Depends(get_db)):
         }
     }
 
-
