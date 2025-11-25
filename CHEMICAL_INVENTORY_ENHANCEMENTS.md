@@ -244,4 +244,5 @@ The chemical inventory system has been significantly enhanced with role-based vi
 ### Backend
 - Database query optimization
 - Notification batching
-- Caching strategies 
+- Caching strategies
+- 
