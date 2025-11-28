@@ -108,7 +108,6 @@ Authorization: Bearer <firebase_token>
   "last_seen": "2024-01-01T12:00:00Z"
 }
 ```
-
 ## Security Considerations
 
 - Only approved users send heartbeat requests
