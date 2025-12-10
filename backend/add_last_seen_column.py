@@ -2,7 +2,6 @@
 """
 Script to add last_seen column to users table
 """
-
 import sys
 import os
 from sqlalchemy import text
