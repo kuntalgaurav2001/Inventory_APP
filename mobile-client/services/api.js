@@ -174,6 +174,7 @@ export const fetchNotificationPriorities = async () => {
   return response.json();
 };
 
+
 export const fetchNotificationStatuses = async () => {
   const headers = await getAuthHeaders();
   const response = await fetch(`${API_BASE}/notifications/statuses/list`, {
